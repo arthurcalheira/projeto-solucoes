@@ -26,6 +26,7 @@ e a demo [`demo/triagem-previdenciaria.html`](demo/triagem-previdenciaria.html).
 | [`04-entrega/`](04-entrega/) | Processo de implantação e onboarding do cliente |
 | [`05-compliance/`](05-compliance/) | LGPD, segurança e pontos do contrato |
 | [`06-clientes/`](06-clientes/) | Uma pasta por cliente (copie `_modelo/`) |
+| [`07-prospeccao/`](07-prospeccao/) | Dados de mercado, lista de escritórios para abordar e concorrentes |
 
 ## Ordem sugerida de leitura
 

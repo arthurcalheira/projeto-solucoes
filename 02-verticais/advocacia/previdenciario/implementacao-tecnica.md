@@ -38,6 +38,22 @@ próprio quando tiver vários clientes pedindo a mesma coisa.
 | Fila de casos | Google Sheets no começo; CRM quando o escritório já tiver um | Uma linha por caso, preenchida com a ficha. |
 | Documentos | Google Drive ou OneDrive **do escritório** | Você não guarda documentos de clientes no seu ambiente. |
 
+## Regras da Meta para IA no WhatsApp (acompanhar)
+
+Desde 15/01/2026, a Meta proíbe na API do WhatsApp os **assistentes de
+IA de uso geral** (como o ChatGPT dentro do WhatsApp). A própria Meta diz
+que **bots de atendimento ao cliente da empresa continuam permitidos**, e
+esse é o nosso caso: o agente atende os clientes do escritório.
+
+No Brasil, o CADE obrigou a Meta a manter a IA de terceiros liberada. Em
+março de 2026 a Meta disse que passaria a cobrar por "mensagens não
+padronizadas" nesses casos. Confira a regra e a tabela vigentes antes de
+cada implantação.
+
+Fontes:
+- [Canaltech (mar/2026)](https://canaltech.com.br/mercado/whatsapp-libera-ia-de-terceiros-novamente-no-brasil-apos-nova-decisao-do-cade/)
+- [Exame (jan/2026)](https://exame.com/tecnologia/whatsapp-volta-atras-e-deixa-que-empresas-brasileiras-usem-ias-para-atender-clientes/)
+
 ## Custos a medir no piloto
 
 - **WhatsApp:** a Meta não cobra as respostas enviadas dentro de 24 h
