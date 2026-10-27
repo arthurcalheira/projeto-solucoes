@@ -1,0 +1,699 @@
+<meta charset="utf-8">
+<title>Triagem Previdenciária</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: conversa do cliente (celular) à esquerda, painel do advogado à direita; no celular, abas. */
+:root {
+  --bg: #eceff3;
+  --surface: #ffffff;
+  --surface-2: #f5f7f9;
+  --ink: #15202b;
+  --muted: #5a6776;
+  --line: #d5dce4;
+  --brand: #1b4d6b;
+  --brand-ink: #ffffff;
+  --brand-soft: #dde9f1;
+  --chat-bg: #e3e8ed;
+  --bubble-in: #ffffff;
+  --bubble-out: #d3e6f2;
+  --alta: #a8261b;   --alta-soft: #f8e1de;
+  --media: #8f5a00;  --media-soft: #f7ead2;
+  --baixa: #3b6446;  --baixa-soft: #e0eee3;
+  --ok: #2f6b3f;     --ok-soft: #dcefe1;
+  --info: #1b4d6b;   --info-soft: #dde9f1;
+  --focus: #2c7fb8;
+  --font-body: "Public Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f151b; --surface: #17202a; --surface-2: #1c2632; --ink: #e6ecf2; --muted: #9aa8b7; --line: #2b3946;
+    --brand: #6fb0d6; --brand-ink: #0c1620; --brand-soft: #1d3446;
+    --chat-bg: #111a22; --bubble-in: #1f2b37; --bubble-out: #1e4058;
+    --alta: #f08a7e; --alta-soft: #3a1d1a; --media: #e5b45c; --media-soft: #352813; --baixa: #8fc79c; --baixa-soft: #1b2e20;
+    --ok: #8fc79c; --ok-soft: #1b2e20; --info: #8cc2e3; --info-soft: #1d3446; --focus: #7cc0ea;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f151b; --surface: #17202a; --surface-2: #1c2632; --ink: #e6ecf2; --muted: #9aa8b7; --line: #2b3946;
+  --brand: #6fb0d6; --brand-ink: #0c1620; --brand-soft: #1d3446;
+  --chat-bg: #111a22; --bubble-in: #1f2b37; --bubble-out: #1e4058;
+  --alta: #f08a7e; --alta-soft: #3a1d1a; --media: #e5b45c; --media-soft: #352813; --baixa: #8fc79c; --baixa-soft: #1b2e20;
+  --ok: #8fc79c; --ok-soft: #1b2e20; --info: #8cc2e3; --info-soft: #1d3446; --focus: #7cc0ea;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 20px 32px;
+}
+button, input { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+.wrap { max-width: 1180px; margin: 0 auto; display: grid; gap: 18px; }
+
+/* Cabeçalho */
+.top { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px 24px; }
+.top h1 { font-size: 1.5rem; line-height: 1.2; margin: 0; font-weight: 700; letter-spacing: -0.01em; text-wrap: balance; }
+.top p { margin: 4px 0 0; color: var(--muted); max-width: 62ch; }
+.eyebrow { font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--brand); }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.btn { border: 1px solid var(--line); background: var(--surface); padding: 8px 14px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.9rem; }
+.btn:hover { border-color: var(--brand); }
+.btn.primary { background: var(--brand); color: var(--brand-ink); border-color: var(--brand); }
+.btn.primary:hover { filter: brightness(1.08); }
+
+/* Abas (só no celular) */
+.tabs { display: none; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 4px; gap: 4px; }
+.tabs button { flex: 1; border: 0; background: transparent; padding: 8px; border-radius: 7px; font-weight: 600; font-size: 0.9rem; cursor: pointer; color: var(--muted); position: relative; }
+.tabs button[aria-selected="true"] { background: var(--brand-soft); color: var(--ink); }
+.tabs .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--alta); margin-left: 6px; vertical-align: middle; }
+
+.grid { display: grid; grid-template-columns: minmax(320px, 400px) minmax(0, 1fr); gap: 20px; align-items: start; }
+
+/* Celular / conversa */
+.phone { background: var(--chat-bg); border: 1px solid var(--line); border-radius: 22px; overflow: hidden; display: flex; flex-direction: column; height: 680px; box-shadow: 0 10px 30px -18px rgba(10, 30, 50, 0.45); }
+.phone-head { background: var(--brand); color: var(--brand-ink); padding: 12px 14px; display: flex; align-items: center; gap: 10px; }
+.avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--brand-ink); color: var(--brand); display: grid; place-items: center; font-weight: 700; font-size: 0.8rem; flex: none; }
+.phone-head b { display: block; font-size: 0.95rem; line-height: 1.2; }
+.phone-head small { opacity: 0.85; font-size: 0.78rem; }
+.msgs { flex: 1; overflow-y: auto; padding: 14px 12px; display: flex; flex-direction: column; gap: 6px; scroll-behavior: smooth; }
+.day { align-self: center; font-size: 0.72rem; background: var(--surface); color: var(--muted); padding: 2px 10px; border-radius: 6px; margin-bottom: 6px; }
+.msg { max-width: 84%; padding: 7px 10px 5px; border-radius: 10px; font-size: 0.92rem; line-height: 1.42; overflow-wrap: anywhere; animation: pop 0.18s ease-out; }
+.msg.in { align-self: flex-start; background: var(--bubble-in); border-top-left-radius: 3px; }
+.msg.out { align-self: flex-end; background: var(--bubble-out); border-top-right-radius: 3px; }
+.msg ul { margin: 4px 0; padding-left: 18px; }
+.msg .t { display: block; text-align: right; font-size: 0.68rem; color: var(--muted); margin-top: 2px; font-family: var(--font-mono); }
+.anexo { display: flex; align-items: center; gap: 8px; }
+.anexo svg { flex: none; }
+.typing { align-self: flex-start; background: var(--bubble-in); border-radius: 10px; padding: 10px 12px; display: flex; gap: 4px; }
+.typing i { width: 6px; height: 6px; border-radius: 50%; background: var(--muted); animation: blink 1s infinite; }
+.typing i:nth-child(2) { animation-delay: 0.15s; } .typing i:nth-child(3) { animation-delay: 0.3s; }
+@keyframes blink { 0%, 80%, 100% { opacity: 0.25; } 40% { opacity: 1; } }
+@keyframes pop { from { transform: translateY(4px); opacity: 0.4; } to { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .msg, .typing i { animation: none; } .msgs { scroll-behavior: auto; } }
+
+.composer { background: var(--surface); border-top: 1px solid var(--line); padding: 8px; display: grid; gap: 8px; }
+.quick { display: flex; flex-wrap: wrap; gap: 6px; }
+.quick:empty { display: none; }
+.quick button { border: 1px solid var(--brand); color: var(--brand); background: var(--surface); border-radius: 999px; padding: 6px 12px; font-size: 0.86rem; font-weight: 600; cursor: pointer; }
+.quick button:hover { background: var(--brand-soft); }
+.entry { display: flex; gap: 6px; }
+.entry input { flex: 1; min-width: 0; border: 1px solid var(--line); background: var(--surface-2); border-radius: 999px; padding: 8px 14px; }
+.entry input:disabled { opacity: 0.6; }
+.entry button { border: 0; background: var(--brand); color: var(--brand-ink); border-radius: 50%; width: 40px; height: 40px; display: grid; place-items: center; cursor: pointer; flex: none; }
+.entry button:disabled { opacity: 0.4; cursor: default; }
+
+/* Painel do advogado */
+.panel { display: grid; gap: 16px; min-width: 0; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px; min-width: 0; }
+.case-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
+.case-head h2 { margin: 0; font-size: 1.15rem; line-height: 1.25; }
+.case-head .num { font-family: var(--font-mono); font-size: 0.8rem; color: var(--muted); }
+.pills { display: flex; flex-wrap: wrap; gap: 6px; }
+.pill { font-size: 0.75rem; font-weight: 700; padding: 3px 10px; border-radius: 999px; letter-spacing: 0.02em; white-space: nowrap; }
+.pill.alta { background: var(--alta-soft); color: var(--alta); }
+.pill.media { background: var(--media-soft); color: var(--media); }
+.pill.baixa { background: var(--baixa-soft); color: var(--baixa); }
+.pill.none { background: var(--surface-2); color: var(--muted); }
+.pill.st-andamento { background: var(--info-soft); color: var(--info); }
+.pill.st-pronto { background: var(--ok-soft); color: var(--ok); }
+.pill.st-humano { background: var(--media-soft); color: var(--media); }
+
+.meters { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; padding: 14px 0; border-bottom: 1px solid var(--line); }
+.meter span { display: block; font-size: 0.74rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+.meter b { font-family: var(--font-mono); font-size: 1.15rem; font-weight: 500; font-variant-numeric: tabular-nums; }
+
+.cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 28px; padding-top: 16px; }
+.sec h3 { margin: 0 0 8px; font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 600; }
+.sec.full { grid-column: 1 / -1; }
+dl.kv { margin: 0; display: grid; grid-template-columns: minmax(0, 44%) minmax(0, 1fr); gap: 5px 12px; font-size: 0.9rem; }
+dl.kv dt { color: var(--muted); }
+dl.kv dd { margin: 0; font-weight: 500; overflow-wrap: anywhere; }
+.empty { color: var(--muted); font-size: 0.88rem; font-style: italic; margin: 0; }
+ul.sinais, ul.docs { list-style: none; margin: 0; padding: 0; display: grid; gap: 7px; font-size: 0.9rem; }
+ul.sinais li { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px; align-items: start; }
+ul.sinais .pill { margin-top: 1px; min-width: 52px; text-align: center; }
+ul.docs li { display: flex; gap: 8px; align-items: flex-start; }
+.chk { width: 18px; height: 18px; border-radius: 5px; border: 1.5px solid var(--line); flex: none; display: grid; place-items: center; margin-top: 2px; }
+.chk.ok { background: var(--ok); border-color: var(--ok); color: var(--surface); }
+.docs .pend { color: var(--muted); }
+.resumo { background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; font-size: 0.92rem; margin: 0; }
+.resumo-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 8px; font-size: 0.85rem; color: var(--muted); }
+.next { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; font-size: 0.92rem; }
+
+/* Fila */
+.fila h2 { margin: 0 0 4px; font-size: 1rem; }
+.fila p { margin: 0 0 12px; color: var(--muted); font-size: 0.85rem; }
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 0.88rem; min-width: 520px; }
+th { text-align: left; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); font-weight: 600; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+td { padding: 8px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+td.mono { font-family: var(--font-mono); font-size: 0.8rem; color: var(--muted); white-space: nowrap; }
+tr.live td { background: var(--brand-soft); }
+.tag { font-size: 0.7rem; color: var(--muted); border: 1px solid var(--line); border-radius: 4px; padding: 0 5px; margin-left: 6px; }
+
+.note { font-size: 0.82rem; color: var(--muted); max-width: 80ch; margin: 0; }
+
+@media (max-width: 899px) {
+  .tabs { display: flex; }
+  .grid { grid-template-columns: minmax(0, 1fr); }
+  .grid[data-view="chat"] .panel { display: none; }
+  .grid[data-view="panel"] .phone { display: none; }
+  .phone { height: 72vh; min-height: 480px; }
+}
+@media (max-width: 560px) {
+  .cols { grid-template-columns: minmax(0, 1fr); }
+  .meters { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .meter b { font-size: 1rem; }
+  .card { padding: 16px; }
+}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <div class="eyebrow">Demonstração · dados fictícios</div>
+      <h1>Triagem previdenciária no WhatsApp</h1>
+      <p>Responda como se fosse o cliente. O painel do advogado ao lado se preenche sozinho enquanto a conversa acontece.</p>
+    </div>
+    <div class="actions">
+      <button class="btn primary" id="btn-auto" type="button">Simular conversa completa</button>
+      <button class="btn" id="btn-reset" type="button">Recomeçar</button>
+    </div>
+  </header>
+
+  <div class="tabs" role="tablist" aria-label="Alternar visão">
+    <button role="tab" id="tab-chat" aria-selected="true" type="button">Conversa do cliente</button>
+    <button role="tab" id="tab-panel" aria-selected="false" type="button">Painel do advogado<span class="dot" id="tab-dot" hidden></span></button>
+  </div>
+
+  <main class="grid" id="grid" data-view="chat">
+    <section class="phone" aria-label="Conversa do cliente">
+      <div class="phone-head">
+        <div class="avatar" aria-hidden="true">MA</div>
+        <div><b>Modelo Advocacia Previdenciária</b><small>assistente virtual · online</small></div>
+      </div>
+      <div class="msgs" id="msgs" aria-live="polite"></div>
+      <div class="composer">
+        <div class="quick" id="quick"></div>
+        <form class="entry" id="entry" autocomplete="off">
+          <input id="campo" type="text" placeholder="Escolha uma opção acima" disabled aria-label="Mensagem">
+          <button id="enviar" type="submit" disabled aria-label="Enviar">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 12l16-8-6 16-2.5-6.5L4 12z" fill="currentColor"/></svg>
+          </button>
+        </form>
+      </div>
+    </section>
+
+    <section class="panel" aria-label="Painel do advogado">
+      <article class="card">
+        <div class="case-head">
+          <div>
+            <div class="num" id="p-num">Caso nº 2026-0148</div>
+            <h2 id="p-titulo">Novo contato pelo WhatsApp</h2>
+          </div>
+          <div class="pills">
+            <span class="pill st-andamento" id="p-status">Em atendimento</span>
+            <span class="pill none" id="p-prio">Prioridade —</span>
+          </div>
+        </div>
+
+        <div class="meters">
+          <div class="meter"><span>Conversa</span><b id="m-tempo">0:00</b></div>
+          <div class="meter"><span>Documentos</span><b id="m-docs">0 de 0</b></div>
+          <div class="meter"><span>Tempo do advogado</span><b>0 min</b></div>
+        </div>
+
+        <div class="cols">
+          <div class="sec">
+            <h3>Dados do contato</h3>
+            <dl class="kv" id="p-dados"></dl>
+          </div>
+          <div class="sec">
+            <h3>Respostas da triagem</h3>
+            <dl class="kv" id="p-resp"></dl>
+            <p class="empty" id="p-resp-empty">Aparecem conforme o cliente responde.</p>
+          </div>
+          <div class="sec">
+            <h3>Sinais para análise</h3>
+            <ul class="sinais" id="p-sinais"></ul>
+            <p class="empty" id="p-sinais-empty">Nenhum sinal ainda.</p>
+          </div>
+          <div class="sec">
+            <h3>Documentos</h3>
+            <ul class="docs" id="p-docs"></ul>
+            <p class="empty" id="p-docs-empty">A lista é definida pelo assunto do caso.</p>
+          </div>
+          <div class="sec full">
+            <h3>Resumo para o advogado</h3>
+            <p class="resumo" id="p-resumo">O resumo aparece quando a triagem terminar.</p>
+            <div class="resumo-actions">
+              <button class="btn" id="btn-copy" type="button" disabled>Copiar resumo</button>
+              <span id="copy-msg" aria-live="polite"></span>
+            </div>
+          </div>
+          <div class="sec full">
+            <h3>Próximo passo sugerido</h3>
+            <div class="next" id="p-next"><span class="empty">Aguardando o fim da triagem.</span></div>
+          </div>
+        </div>
+      </article>
+
+      <article class="card fila">
+        <h2>Fila de hoje</h2>
+        <p>O caso desta conversa aparece no topo. As outras linhas são exemplos.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Caso</th><th>Cliente</th><th>Assunto</th><th>Prioridade</th><th>Situação</th></tr></thead>
+            <tbody id="fila"></tbody>
+          </table>
+        </div>
+      </article>
+
+      <p class="note">Sinais e prioridades são pontos de atenção para o advogado, nunca uma decisão sobre o direito do cliente. O critério de renda do BPC usa um salário mínimo de referência configurável (R$ 1.621), que deve ser conferido com o valor vigente. Na versão real, a IA entende texto livre e áudio e lê as fotos dos documentos.</p>
+    </section>
+  </main>
+</div>
+
+<script>
+(() => {
+  const SALARIO_MINIMO = 1621; // referência configurável: conferir o valor vigente
+  const NIVEL = { alta: 3, media: 2, baixa: 1 };
+  const NOME_NIVEL = { alta: "Alta", media: "Média", baixa: "Baixa" };
+  const DOCS_BASE = ["Documento com foto e CPF", "Comprovante de residência"];
+  const ROTEIRO_DEMO = [
+    "Pode continuar", "Maria Aparecida", "O meu caso", "O INSS negou ou cortou",
+    "Auxílio por doença", "Menos de 30 dias", "Sim", "Mais de 6 meses",
+    "Carteira assinada", "Sim", "Não", "Campinas/SP", "Enviar fotos agora"
+  ];
+  const FILA_EXEMPLOS = [
+    ["2026-0147", "Carlos M.", "Outro assunto", null, "Aguardando atendimento humano"],
+    ["2026-0146", "Sebastiana R.", "Aposentadoria", "media", "Faltam documentos"],
+    ["2026-0145", "João P.", "BPC/LOAS", "alta", "Pronto para análise"]
+  ];
+
+  const $ = (s) => document.querySelector(s);
+  const reduz = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const espera = (ms) => new Promise((r) => setTimeout(r, ms));
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const reais = (v) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  const hora = () => new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+
+  class Cancelado extends Error {}
+  let run = 0;
+  let roteiro = null;
+  let caso;
+  let relogio = null;
+
+  function novoCaso() {
+    return { nome: "", casoDe: "", assunto: "", cidade: "", respostas: [], sinais: [], docs: [],
+      status: "andamento", inicio: Date.now(), fim: null, negativa: null };
+  }
+
+  function confere(id) { if (id !== run) throw new Cancelado(); }
+
+  // ---------- Conversa ----------
+  function addMsg(lado, html) {
+    const box = $("#msgs");
+    const el = document.createElement("div");
+    el.className = "msg " + lado;
+    el.innerHTML = html + '<span class="t">' + hora() + "</span>";
+    box.appendChild(el);
+    box.scrollTop = box.scrollHeight;
+  }
+
+  async function bot(id, html) {
+    confere(id);
+    const box = $("#msgs");
+    const t = document.createElement("div");
+    t.className = "typing";
+    t.innerHTML = "<i></i><i></i><i></i>";
+    box.appendChild(t);
+    box.scrollTop = box.scrollHeight;
+    await espera(reduz ? 120 : Math.min(1300, 420 + html.replace(/<[^>]+>/g, "").length * 7));
+    t.remove();
+    confere(id);
+    addMsg("in", html);
+  }
+
+  function desligaEntrada() {
+    $("#quick").innerHTML = "";
+    const campo = $("#campo");
+    campo.value = ""; campo.disabled = true; campo.placeholder = "Escolha uma opção acima";
+    $("#enviar").disabled = true;
+    $("#entry").onsubmit = (e) => e.preventDefault();
+  }
+
+  function proximoRoteiro(id, aplicar) {
+    if (!roteiro) return;
+    if (!roteiro.length) { roteiro = null; return; }
+    const v = roteiro.shift();
+    setTimeout(() => { if (id === run) aplicar(v); }, reduz ? 300 : 850);
+  }
+
+  function escolher(id, opcoes) {
+    return new Promise((resolve) => {
+      desligaEntrada();
+      let feito = false;
+      const fim = (o) => {
+        if (feito || id !== run) return;
+        feito = true; desligaEntrada(); addMsg("out", esc(o)); resolve(o);
+      };
+      opcoes.forEach((o) => {
+        const b = document.createElement("button");
+        b.type = "button"; b.textContent = o; b.onclick = () => fim(o);
+        $("#quick").appendChild(b);
+      });
+      proximoRoteiro(id, (v) => fim(opcoes.includes(v) ? v : opcoes[0]));
+    });
+  }
+
+  function digitar(id, placeholder, numerico) {
+    return new Promise((resolve) => {
+      desligaEntrada();
+      const campo = $("#campo");
+      campo.disabled = false; campo.placeholder = placeholder;
+      campo.inputMode = numerico ? "numeric" : "text";
+      $("#enviar").disabled = false;
+      if (!roteiro) campo.focus({ preventScroll: true });
+      let feito = false;
+      const fim = (bruto) => {
+        if (feito || id !== run) return;
+        let v = String(bruto).trim();
+        if (!v) return;
+        if (numerico) {
+          const n = Number(v.replace(/[^\d,.-]/g, "").replace(/\./g, "").replace(",", "."));
+          if (!Number.isFinite(n) || n < 0) { campo.value = ""; campo.placeholder = "Digite só números"; return; }
+          v = n;
+        }
+        feito = true; desligaEntrada(); addMsg("out", esc(numerico && placeholder.includes("R$") ? reais(v) : v)); resolve(v);
+      };
+      $("#entry").onsubmit = (e) => { e.preventDefault(); fim(campo.value); };
+      proximoRoteiro(id, fim);
+    });
+  }
+
+  async function pergunta(id, texto, opcoes, rotulo) {
+    await bot(id, texto);
+    const r = await escolher(id, opcoes);
+    if (rotulo) registra(rotulo, r);
+    return r;
+  }
+
+  async function perguntaTexto(id, texto, placeholder, rotulo, numerico) {
+    await bot(id, texto);
+    const r = await digitar(id, placeholder, numerico);
+    if (rotulo) registra(rotulo, r);
+    return r;
+  }
+
+  // ---------- Ficha do caso ----------
+  function registra(rotulo, valor) { caso.respostas.push([rotulo, valor]); render(); }
+  function sinal(texto, nivel) { caso.sinais.push({ texto, nivel }); render(); }
+  function pedeDocs(lista) {
+    lista.forEach((nome) => { if (!caso.docs.some((d) => d.nome === nome)) caso.docs.push({ nome, ok: false }); });
+    render();
+  }
+  function prioridade() {
+    return caso.sinais.reduce((max, s) => (!max || NIVEL[s.nivel] > NIVEL[max] ? s.nivel : max), null);
+  }
+
+  // ---------- Ramos da triagem ----------
+  async function aposentadoria(id) {
+    const idade = await perguntaTexto(id, "Qual a sua idade?", "Sua idade", "Idade", true);
+    const sexo = await pergunta(id, "Para as regras de idade do INSS, você é:", ["Mulher", "Homem"], "Sexo");
+    const tempo = await pergunta(id, "Quanto tempo, mais ou menos, você contribuiu para o INSS? Vale carteira assinada e carnê.",
+      ["Menos de 15 anos", "15 a 25 anos", "25 a 35 anos", "Mais de 35 anos", "Não sei"], "Tempo de contribuição");
+    const rural = await pergunta(id, "Você já trabalhou na roça ou na zona rural?", ["Sim", "Não"], "Trabalho rural");
+    const especial = await pergunta(id, "Já trabalhou exposto a barulho alto, produtos químicos, em hospital ou em outro ambiente insalubre?",
+      ["Sim", "Não", "Não sei"], "Atividade insalubre");
+    if (!caso.negativa) {
+      const pediu = await pergunta(id, "Você já pediu a aposentadoria ao INSS?", ["Ainda não", "Pedi e negaram"], "Pedido ao INSS");
+      if (pediu === "Pedi e negaram") sinal("Pedido negado pelo INSS: avaliar recurso, novo pedido ou ação judicial.", "alta");
+    }
+    const idadeMin = sexo === "Mulher" ? 62 : 65;
+    const tempoOk = ["15 a 25 anos", "25 a 35 anos", "Mais de 35 anos"].includes(tempo);
+    if (idade >= idadeMin && tempoOk) sinal(`Idade mínima da aposentadoria por idade atingida (${idadeMin} anos) e contribuição informada acima de 15 anos.`, "alta");
+    else if (idade >= idadeMin) sinal("Idade mínima atingida: confirmar tempo de contribuição no CNIS.", "media");
+    if (idade < idadeMin && ["25 a 35 anos", "Mais de 35 anos"].includes(tempo)) sinal("Muito tempo de contribuição antes da idade mínima: verificar regras de transição.", "media");
+    if (rural === "Sim") sinal("Trabalho rural informado: avaliar aposentadoria rural ou híbrida.", "media");
+    if (especial === "Sim") sinal("Possível tempo especial por atividade insalubre: solicitar PPP.", "media");
+    if (!caso.sinais.length) sinal("Poucas informações para sinalizar: analisar o CNIS.", "baixa");
+    pedeDocs(["CNIS (extrato de contribuições do Meu INSS)", "Carteiras de trabalho"]);
+    if (especial === "Sim") pedeDocs(["PPP (perfil profissiográfico)"]);
+    if (rural === "Sim") pedeDocs(["Documentos de atividade rural"]);
+  }
+
+  async function incapacidade(id) {
+    const tempo = await pergunta(id, "Há quanto tempo você não consegue trabalhar?", ["Menos de 15 dias", "15 dias a 6 meses", "Mais de 6 meses"], "Sem trabalhar há");
+    const contrib = await pergunta(id, "Quando a doença começou, você contribuía para o INSS?", ["Carteira assinada", "Carnê ou MEI", "Não contribuía", "Não sei"], "Contribuição no início");
+    const laudos = await pergunta(id, "Você tem laudos, atestados ou exames sobre a doença?", ["Sim", "Alguns", "Não"], "Laudos e atestados");
+    const acidente = await pergunta(id, "A doença ou lesão veio de um acidente?", ["Sim, no trabalho", "Sim, fora do trabalho", "Não"], "Origem");
+    if (!caso.negativa) {
+      const pedido = await pergunta(id, "Você já pediu o benefício ao INSS?", ["Ainda não", "Pedi e negaram", "Recebia e cortaram"], "Pedido ao INSS");
+      if (pedido !== "Ainda não") sinal("Benefício negado ou cortado: avaliar recurso ou ação judicial.", "alta");
+    }
+    const contribuia = ["Carteira assinada", "Carnê ou MEI"].includes(contrib);
+    if (tempo !== "Menos de 15 dias" && contribuia) sinal("Incapacidade há mais de 15 dias com contribuição informada.", "alta");
+    if (tempo === "Menos de 15 dias") sinal("Afastamento menor que 15 dias: para empregados, esse período é pago pela empresa.", "baixa");
+    if (!contribuia) sinal("Contribuição incerta: verificar qualidade de segurado e período de graça.", "media");
+    if (acidente !== "Não") sinal("Lesão por acidente: avaliar auxílio-acidente se houver sequela.", "media");
+    if (laudos === "Não") sinal("Sem laudos: orientar busca de avaliação médica antes de qualquer pedido.", "media");
+    pedeDocs(["Laudos e atestados recentes", "Exames e receitas", "CNIS (extrato de contribuições do Meu INSS)"]);
+    if (acidente === "Sim, no trabalho") pedeDocs(["CAT (comunicação de acidente de trabalho)"]);
+  }
+
+  async function bpc(id) {
+    const motivo = await pergunta(id, "O pedido é por idade ou por deficiência ou doença de longa duração?",
+      ["Idade (65 anos ou mais)", "Deficiência ou doença longa"], "Motivo");
+    if (motivo.startsWith("Idade")) {
+      const idade = await perguntaTexto(id, "Qual a idade da pessoa que vai receber?", "Idade", "Idade", true);
+      if (idade < 65) sinal("Idade abaixo de 65 anos: confirmar se há deficiência ou doença de longa duração.", "media");
+    }
+    const pessoas = Math.max(1, await perguntaTexto(id, "Quantas pessoas moram na casa, contando com a pessoa?", "Número de pessoas", "Pessoas na casa", true));
+    const renda = await perguntaTexto(id, "Qual a renda total da casa por mês, somando todo mundo? Pode ser aproximado. Se ninguém tem renda, digite 0.", "Renda em R$", null, true);
+    registra("Renda da casa", reais(renda));
+    const porPessoa = renda / pessoas;
+    registra("Renda por pessoa", reais(porPessoa));
+    const cad = await pergunta(id, "A família está no <b>CadÚnico</b>, com o cadastro atualizado nos últimos 2 anos?", ["Sim", "Não", "Não sei"], "CadÚnico");
+    if (cad !== "Sim") await bot(id, "Anotado. O CadÚnico é feito no CRAS da sua cidade, e o advogado vai te orientar sobre isso.");
+    if (porPessoa <= SALARIO_MINIMO / 4) sinal(`Renda por pessoa de ${reais(porPessoa)}: até 1/4 do salário mínimo de referência.`, "alta");
+    else if (porPessoa <= SALARIO_MINIMO / 2) sinal("Renda por pessoa entre 1/4 e 1/2 salário mínimo: analisar flexibilização do critério de renda.", "media");
+    else sinal("Renda por pessoa acima de 1/2 salário mínimo: advogado avalia o caso.", "baixa");
+    if (cad !== "Sim") sinal("CadÚnico ausente ou desatualizado: requisito obrigatório; orientar a procurar o CRAS.", "media");
+    pedeDocs(["Comprovante do CadÚnico", "Documentos de todos da casa", "Comprovantes de renda da família"]);
+    if (!motivo.startsWith("Idade")) pedeDocs(["Laudos médicos"]);
+  }
+
+  async function pensao(id) {
+    await bot(id, "Sinto muito pela sua perda. Vou ser breve.");
+    const rel = await pergunta(id, "Qual era a sua relação com a pessoa que faleceu?", ["Cônjuge ou companheiro(a)", "Filho(a)", "Pai ou mãe", "Outro"], "Relação");
+    const quando = await pergunta(id, "Quando foi o falecimento?", ["Menos de 3 meses", "3 meses a 1 ano", "Mais de 1 ano"], "Falecimento");
+    const contrib = await pergunta(id, "A pessoa contribuía para o INSS ou já era aposentada?", ["Contribuía", "Era aposentada", "Não", "Não sei"], "Situação no INSS");
+    let uniao = null;
+    if (rel.startsWith("Cônjuge")) uniao = await pergunta(id, "Vocês eram casados no papel ou viviam juntos?", ["Casados no papel", "Viviam juntos"], "Tipo de união");
+    const segurado = ["Contribuía", "Era aposentada"].includes(contrib);
+    if ((rel.startsWith("Cônjuge") || rel === "Filho(a)") && segurado) sinal("Dependente preferencial e falecido segurado ou aposentado.", "alta");
+    if (contrib === "Não sei") sinal("Verificar a qualidade de segurado de quem faleceu (CNIS).", "media");
+    if (contrib === "Não") sinal("Sem contribuição informada: verificar períodos de contribuição e de graça.", "media");
+    if (uniao === "Viviam juntos") sinal("União estável: reunir provas da união desde já.", "media");
+    if (rel === "Pai ou mãe") sinal("Pais precisam provar dependência econômica.", "media");
+    if (quando === "Menos de 3 meses") sinal("Óbito recente: pedido rápido pode garantir pagamento desde a data do óbito (conferir prazo).", "media");
+    if (rel === "Outro") sinal("Relação fora das classes usuais de dependentes: advogado avalia.", "baixa");
+    pedeDocs(["Certidão de óbito", "Documentos e CNIS de quem faleceu"]);
+    if (uniao === "Casados no papel") pedeDocs(["Certidão de casamento"]);
+    if (uniao === "Viviam juntos") pedeDocs(["Provas de união estável"]);
+    if (rel === "Filho(a)") pedeDocs(["Certidão de nascimento"]);
+  }
+
+  async function negativa(id) {
+    const qual = await pergunta(id, "Que pena. Qual benefício o INSS negou ou cortou?",
+      ["Aposentadoria", "Auxílio por doença", "BPC/LOAS", "Pensão por morte"], "Benefício negado");
+    const quando = await pergunta(id, "Quando você recebeu a resposta do INSS?", ["Menos de 30 dias", "1 a 6 meses", "Mais de 6 meses"], "Resposta do INSS");
+    const carta = await pergunta(id, "Você tem a carta ou a tela do Meu INSS com o motivo da negativa?", ["Sim", "Não"], "Tem a carta do INSS");
+    caso.negativa = { qual, quando };
+    if (quando === "Menos de 30 dias") sinal("Negativa há menos de 30 dias: o prazo do recurso administrativo pode estar correndo.", "alta");
+    else sinal("Negativa há mais de 30 dias: avaliar ação judicial ou novo requerimento.", "media");
+    pedeDocs([carta === "Sim" ? "Carta de indeferimento (com o motivo)" : "Carta de indeferimento: pedir no Meu INSS"]);
+    await bot(id, "Entendi. Agora algumas perguntas sobre o seu caso.");
+    const ramo = { "Aposentadoria": aposentadoria, "Auxílio por doença": incapacidade, "BPC/LOAS": bpc, "Pensão por morte": pensao }[qual];
+    await ramo(id);
+  }
+
+  // ---------- Fluxo principal ----------
+  async function fluxo(id) {
+    await bot(id, "Olá! Aqui é a assistente virtual do escritório <b>Modelo Advocacia Previdenciária</b>.");
+    const ok = await pergunta(id, "Vou fazer algumas perguntas rápidas para o advogado analisar o seu caso. Suas informações ficam em sigilo e só a equipe do escritório tem acesso. Posso continuar?",
+      ["Pode continuar", "Prefiro falar com uma pessoa"]);
+    if (ok !== "Pode continuar") return passaHumano(id, "Cliente pediu atendimento humano logo no início.");
+
+    const nome = await perguntaTexto(id, "Ótimo! Como posso te chamar?", "Seu nome");
+    caso.nome = nome; render();
+    const primeiro = esc(String(nome).split(" ")[0]);
+    caso.casoDe = await pergunta(id, `Prazer, ${primeiro}! O caso é seu ou de um familiar?`, ["O meu caso", "De um familiar"]);
+    render();
+
+    const ASSUNTOS = { "Aposentadoria": aposentadoria, "Doença ou acidente": incapacidade, "BPC/LOAS": bpc, "Pensão por morte": pensao, "O INSS negou ou cortou": negativa };
+    const assunto = await pergunta(id, "Sobre qual assunto você quer falar?", [...Object.keys(ASSUNTOS), "Outro assunto"]);
+    caso.assunto = assunto; render();
+    if (assunto === "Outro assunto") {
+      const desc = await perguntaTexto(id, "Me conta em poucas palavras o que aconteceu.", "Descreva o caso", "Relato");
+      return passaHumano(id, "Assunto fora dos roteiros de triagem.", desc);
+    }
+    pedeDocs(DOCS_BASE);
+    await ASSUNTOS[assunto](id);
+
+    caso.cidade = await perguntaTexto(id, "Em qual cidade você mora?", "Cidade/UF");
+    render();
+
+    const lista = caso.docs.map((d) => "<li>" + esc(d.nome) + "</li>").join("");
+    await bot(id, "Para adiantar a análise, você pode mandar fotos destes documentos aqui mesmo:<ul>" + lista + "</ul>");
+    const envio = await pergunta(id, "Quer enviar agora?", ["Enviar fotos agora", "Envio depois"]);
+    if (envio === "Enviar fotos agora") {
+      addMsg("out", '<span class="anexo"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" stroke-width="1.6"/><circle cx="9" cy="10" r="1.6" fill="currentColor"/><path d="M4 17l5-4 4 3 3-2 4 3" stroke="currentColor" stroke-width="1.6" fill="none"/></svg>3 fotos enviadas</span>');
+      const recebidos = [caso.docs[0], caso.docs[1], caso.docs[2]].filter(Boolean);
+      recebidos.forEach((d) => { d.ok = true; });
+      render();
+      const faltam = caso.docs.filter((d) => !d.ok).map((d) => esc(d.nome));
+      await bot(id, "Recebi! Identifiquei: <b>" + recebidos.map((d) => esc(d.nome)).join("</b>, <b>") + "</b>." +
+        (faltam.length ? " Ainda faltam: " + faltam.join(", ") + ". Pode mandar quando conseguir." : " Está tudo aqui."));
+    } else {
+      await bot(id, "Sem problema! Daqui a 2 dias eu te lembro, combinado?");
+    }
+    await bot(id, `Pronto, ${primeiro}! O seu caso foi encaminhado ao advogado, que vai analisar e te responder em até 1 dia útil. Lembrando que só o advogado pode dizer se você tem direito. Eu só organizo as informações.`);
+    caso.status = "pronto"; caso.fim = Date.now(); render();
+  }
+
+  async function passaHumano(id, motivo, relato) {
+    await bot(id, "Tudo bem! Já avisei a equipe, e uma pessoa do escritório vai te responder por aqui em breve.");
+    caso.status = "humano"; caso.fim = Date.now(); caso.motivoHumano = motivo; render();
+  }
+
+  // ---------- Painel ----------
+  const STATUS = {
+    andamento: ["Em atendimento", "st-andamento"],
+    pronto: ["Pronto para análise", "st-pronto"],
+    humano: ["Aguardando atendimento humano", "st-humano"]
+  };
+
+  function kv(pares) {
+    return pares.map(([k, v]) => "<dt>" + esc(k) + "</dt><dd>" + esc(v) + "</dd>").join("");
+  }
+
+  function resumo() {
+    const p = prioridade();
+    const partes = [];
+    partes.push(`${caso.nome}${caso.cidade ? ", " + caso.cidade : ""}. ${caso.casoDe === "De um familiar" ? "Contato feito por familiar. " : ""}Assunto: ${caso.assunto}${caso.negativa ? ` (${caso.negativa.qual}, resposta do INSS: ${caso.negativa.quando.toLowerCase()})` : ""}.`);
+    const principais = caso.respostas.filter(([k]) => !["Tem a carta do INSS", "Benefício negado", "Resposta do INSS"].includes(k)).slice(0, 5);
+    if (principais.length) partes.push(principais.map(([k, v]) => `${k}: ${typeof v === "number" ? v : String(v).toLowerCase()}`).join("; ") + ".");
+    const top = [...caso.sinais].sort((a, b) => NIVEL[b.nivel] - NIVEL[a.nivel])[0];
+    if (p && top) partes.push(`Prioridade ${NOME_NIVEL[p].toLowerCase()}: ${top.texto.charAt(0).toLowerCase() + top.texto.slice(1)}`);
+    const ok = caso.docs.filter((d) => d.ok).length;
+    if (caso.docs.length) partes.push(`Documentos: ${ok} de ${caso.docs.length} recebidos.`);
+    return partes.join(" ");
+  }
+
+  function render() {
+    const [stTxt, stCls] = STATUS[caso.status];
+    $("#p-status").textContent = stTxt;
+    $("#p-status").className = "pill " + stCls;
+    const p = prioridade();
+    $("#p-prio").textContent = p ? "Prioridade " + NOME_NIVEL[p].toLowerCase() : "Prioridade —";
+    $("#p-prio").className = "pill " + (p || "none");
+    $("#p-titulo").textContent = caso.nome ? caso.nome + (caso.assunto ? " · " + caso.assunto : "") : "Novo contato pelo WhatsApp";
+
+    $("#p-dados").innerHTML = kv([
+      ["Nome", caso.nome || "—"], ["Caso de", caso.casoDe || "—"],
+      ["Assunto", caso.assunto || "—"], ["Cidade", caso.cidade || "—"],
+      ["Canal", "WhatsApp · (19) 9xxxx-0148"]
+    ]);
+    $("#p-resp").innerHTML = kv(caso.respostas.map(([k, v]) => [k, v]));
+    $("#p-resp-empty").hidden = caso.respostas.length > 0;
+
+    const sinais = [...caso.sinais].sort((a, b) => NIVEL[b.nivel] - NIVEL[a.nivel]);
+    if (caso.status === "humano") sinais.unshift({ texto: caso.motivoHumano, nivel: "media" });
+    $("#p-sinais").innerHTML = sinais.map((s) => `<li><span class="pill ${s.nivel}">${NOME_NIVEL[s.nivel]}</span><span>${esc(s.texto)}</span></li>`).join("");
+    $("#p-sinais-empty").hidden = sinais.length > 0;
+
+    const check = '<svg width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" stroke="currentColor" stroke-width="3" fill="none"/></svg>';
+    $("#p-docs").innerHTML = caso.docs.map((d) => `<li class="${d.ok ? "" : "pend"}"><span class="chk ${d.ok ? "ok" : ""}">${d.ok ? check : ""}</span><span>${esc(d.nome)}${d.ok ? "" : " (pendente)"}</span></li>`).join("");
+    $("#p-docs-empty").hidden = caso.docs.length > 0;
+    $("#m-docs").textContent = caso.docs.filter((d) => d.ok).length + " de " + caso.docs.length;
+
+    const terminou = caso.status !== "andamento";
+    if (caso.status === "pronto") {
+      $("#p-resumo").textContent = resumo();
+      const prazo = { alta: "Analisar hoje", media: "Analisar em até 2 dias úteis", baixa: "Analisar quando houver agenda" }[p] || "Analisar";
+      const falta = caso.docs.some((d) => !d.ok);
+      $("#p-next").innerHTML = `<span class="pill ${p || "none"}">${prazo}</span><span>${falta ? "Os documentos pendentes já foram pedidos ao cliente, com lembrete automático em 48 h." : "Todos os documentos foram recebidos."}</span>`;
+    } else if (caso.status === "humano") {
+      $("#p-resumo").textContent = `${caso.nome || "Contato sem nome"}: ${caso.motivoHumano}${caso.respostas.length ? " Relato: " + caso.respostas[caso.respostas.length - 1][1] : ""}`;
+      $("#p-next").innerHTML = '<span class="pill media">Responder no WhatsApp</span><span>Uma pessoa da equipe assume a conversa e o agente para de responder.</span>';
+    } else {
+      $("#p-resumo").textContent = "O resumo aparece quando a triagem terminar.";
+      $("#p-next").innerHTML = '<span class="empty">Aguardando o fim da triagem.</span>';
+    }
+    $("#btn-copy").disabled = !terminou;
+
+    const linhas = [["2026-0148", caso.nome || "Novo contato", caso.assunto || "Identificando", p, STATUS[caso.status][0], true], ...FILA_EXEMPLOS];
+    $("#fila").innerHTML = linhas.map(([n, c, a, pr, s, live]) =>
+      `<tr class="${live ? "live" : ""}"><td class="mono">${n}</td><td>${esc(c)}${live ? "" : '<span class="tag">exemplo</span>'}</td><td>${esc(a)}</td><td><span class="pill ${pr || "none"}">${pr ? NOME_NIVEL[pr] : "—"}</span></td><td>${esc(s)}</td></tr>`).join("");
+
+    if ($("#grid").dataset.view === "chat" && caso.respostas.length) $("#tab-dot").hidden = false;
+  }
+
+  function tique() {
+    const ms = (caso.fim || Date.now()) - caso.inicio;
+    const s = Math.floor(ms / 1000);
+    $("#m-tempo").textContent = Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0");
+  }
+
+  // ---------- Controles ----------
+  function iniciar(comRoteiro) {
+    run += 1;
+    const id = run;
+    roteiro = comRoteiro ? [...ROTEIRO_DEMO] : null;
+    caso = novoCaso();
+    $("#msgs").innerHTML = '<div class="day">Hoje</div>';
+    desligaEntrada();
+    $("#copy-msg").textContent = "";
+    render();
+    clearInterval(relogio);
+    relogio = setInterval(tique, 1000);
+    tique();
+    fluxo(id).catch((e) => { if (!(e instanceof Cancelado)) console.error(e); });
+  }
+
+  function mostra(view) {
+    $("#grid").dataset.view = view;
+    $("#tab-chat").setAttribute("aria-selected", String(view === "chat"));
+    $("#tab-panel").setAttribute("aria-selected", String(view === "panel"));
+    if (view === "panel") $("#tab-dot").hidden = true;
+  }
+
+  $("#btn-auto").onclick = () => { mostra("chat"); iniciar(true); };
+  $("#btn-reset").onclick = () => { mostra("chat"); iniciar(false); };
+  $("#tab-chat").onclick = () => mostra("chat");
+  $("#tab-panel").onclick = () => mostra("panel");
+  $("#btn-copy").onclick = () => {
+    const txt = $("#p-resumo").textContent;
+    const ok = () => { $("#copy-msg").textContent = "Resumo copiado."; };
+    const falha = () => {
+      const r = document.createRange(); r.selectNodeContents($("#p-resumo"));
+      const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r);
+      $("#copy-msg").textContent = "Texto selecionado. Use Ctrl+C para copiar.";
+    };
+    try { navigator.clipboard.writeText(txt).then(ok, falha); } catch (e) { falha(); }
+  };
+
+  iniciar(false);
+})();
+</script>

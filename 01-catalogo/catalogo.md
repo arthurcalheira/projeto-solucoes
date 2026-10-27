@@ -4,6 +4,18 @@ Cada item aqui é um **produto**: escopo fechado, preço de referência,
 prazo de entrega. Use a [ficha padrão](#ficha-padrão-de-solução) para
 cadastrar soluções novas.
 
+## ⭐ Produto principal — Advocacia previdenciária
+
+Foco atual de vendas. Detalhes em
+[`02-verticais/advocacia/previdenciario/`](../02-verticais/advocacia/previdenciario/).
+
+| Código | Solução | Blocos usados | Prazo típico |
+|---|---|---|---|
+| **PREV01** | **Atendimento e triagem no WhatsApp** (porta de entrada) | H01 + H02 | 2–3 semanas |
+| PREV02 | Leitura e análise de CNIS e documentos | H02 + H06 | 1–2 semanas |
+| PREV03 | Minuta de petição a partir da ficha de triagem | ADV01 | 2–4 semanas |
+| PREV04 | Aviso de andamento do processo ao cliente | H01 + H05 | 1–2 semanas |
+
 ## Soluções horizontais (qualquer empresa)
 
 | Código | Solução | O que faz | Prazo típico |

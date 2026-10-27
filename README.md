@@ -8,6 +8,13 @@ Cada solução vira um *pacote* com escopo, preço, processo de entrega e
 materiais de venda prontos — assim o segundo cliente custa muito menos
 esforço que o primeiro.
 
+## Foco atual
+
+**Advocacia previdenciária**, entrando pela **PREV01: atendimento e
+triagem no WhatsApp**. Veja
+[`02-verticais/advocacia/previdenciario/`](02-verticais/advocacia/previdenciario/)
+e a demo [`demo/triagem-previdenciaria.html`](demo/triagem-previdenciaria.html).
+
 ## Como esta pasta está organizada
 
 | Pasta | Para que serve |

@@ -46,6 +46,9 @@ Quanto mais repetitivo o tipo de peça, maior o ganho e mais fácil a venda.
 
 ## Arquivos desta pasta
 
+- **[`previdenciario/`](previdenciario/): foco atual.** Produto PREV01,
+  a triagem no WhatsApp para escritórios previdenciários.
+
 - [`solucao-peticoes.md`](solucao-peticoes.md) — como funciona o ADV01
 - [`templates/ficha-do-caso.md`](templates/ficha-do-caso.md) — formulário de entrada
 - [`templates/prompt-peticao.md`](templates/prompt-peticao.md) — prompt base do gerador

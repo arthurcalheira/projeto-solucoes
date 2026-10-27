@@ -1,18 +1,21 @@
 # Plano dos primeiros 90 dias
 
-Meta: **3 clientes pagantes** no vertical de advocacia e um processo de
-entrega que você consiga repetir.
+Meta: **3 escritórios previdenciários pagando o PREV01** (triagem no
+WhatsApp) e um processo de entrega que você consiga repetir.
 
 ## Dias 1–30 — Validar e montar a primeira solução
 
-- [ ] Conversar com 10 advogados/escritórios **antes** de construir muito
+- [ ] Listar 30 escritórios previdenciários (Google Maps, Instagram,
+      indicações) e conversar com pelo menos 10
       (use [`03-comercial/roteiro-diagnostico.md`](../03-comercial/roteiro-diagnostico.md)).
-- [ ] Anotar as 3 dores mais citadas. Hipótese: petições repetitivas,
-      atendimento inicial no WhatsApp, controle de prazos.
-- [ ] Escolher **uma** solução para construir primeiro (recomendado:
-      gerador de minutas de petição — ver
-      [`02-verticais/advocacia/solucao-peticoes.md`](../02-verticais/advocacia/solucao-peticoes.md)).
-- [ ] Montar uma demo funcionando com modelos fictícios (sem dados reais).
+- [ ] Mostrar a demo
+      [`demo/triagem-previdenciaria.html`](../demo/triagem-previdenciaria.html)
+      em cada conversa e anotar a reação.
+- [ ] Confirmar a dor: quantos contatos chegam por mês, quanto tempo a
+      triagem toma e quantos contatos se perdem.
+- [ ] Montar o fluxo real (ver
+      [`implementacao-tecnica.md`](../02-verticais/advocacia/previdenciario/implementacao-tecnica.md))
+      com um número de teste e casos fictícios.
 - [ ] Gravar um vídeo curto (2–3 min) da demo.
 
 ## Dias 31–60 — Pilotos
@@ -28,7 +31,8 @@ entrega que você consiga repetir.
 - [ ] Pedir depoimento e um número de resultado ("economizamos X h/semana").
 - [ ] Ajustar preço com base no custo real medido.
 - [ ] Documentar o que foi reaproveitável e o que foi sob medida.
-- [ ] Decidir a 2ª solução do catálogo (ex.: atendimento/triagem no WhatsApp).
+- [ ] Oferecer a 2ª solução aos clientes ativos (PREV02, leitura de CNIS
+      e documentos, ou PREV03, minuta de petição).
 
 ## Indicadores para acompanhar toda semana
 
