@@ -49,6 +49,15 @@ def test_historico_so_cresce_e_guarda_raciocinio():
     assert resultado.novas_mensagens[2]["content"][0] == {"type": "thinking", "thinking": "", "signature": "assinatura"}
 
 
+def test_haiku_vai_sem_fallback():
+    cliente = ClienteFalso([resposta_api(turno())])
+    _responder(AgenteTriagem(cliente, "claude-haiku-5-5", "high", "PROMPT FIXO"))
+    req = cliente.chamadas[0]
+    assert req["model"] == "claude-haiku-5-5"
+    assert req["output_config"]["effort"] == "high"
+    assert "fallbacks" not in req and "betas" not in req
+
+
 def test_recusa_vai_para_humano_sem_guardar_contexto():
     resultado = _responder(_agente(ClienteFalso([resposta_api(stop_reason="refusal")])))
     assert resultado.turno.acao == "humano"

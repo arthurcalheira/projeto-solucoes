@@ -8,8 +8,9 @@ Decisões importantes:
   todas as conversas) e o cache automático cobre o histórico de cada conversa.
 - Data, hora e horário de atendimento vão numa mensagem de sistema no fim, para
   não alterar o começo do prompt e não perder o cache.
-- Se o modelo recusar o pedido, o servidor tenta outro modelo automaticamente
-  (fallbacks="default"). Se ainda assim falhar, o caso vai para um humano.
+- Se o modelo recusar o pedido, o caso vai para um humano. Nos modelos que
+  aceitam, o servidor antes tenta outro modelo (fallbacks="default"); o Haiku
+  5.5 não tem esse recurso.
 """
 
 from __future__ import annotations
@@ -25,7 +26,9 @@ from .ficha import SCHEMA, Ficha, TurnoAgente
 
 log = logging.getLogger(__name__)
 
-BETAS = ["server-side-fallback-2026-07-01"]
+# Modelos que aceitam fallbacks="default" (o Haiku 5.5 não aceita).
+MODELOS_COM_FALLBACK = {"claude-opus-5-5", "claude-opus-5", "claude-fable-5-1", "claude-sonnet-5-5"}
+BETAS_FALLBACK = ["server-side-fallback-2026-07-01"]
 MAX_TOKENS = 16000
 
 MENSAGEM_FALHA = (
@@ -94,6 +97,10 @@ class AgenteTriagem:
         msg_usuario = {"role": "user", "content": entrada}
         msg_contexto = {"role": "system", "content": contexto}
 
+        extras: dict[str, Any] = {}
+        if self.modelo in MODELOS_COM_FALLBACK:
+            extras = {"betas": BETAS_FALLBACK, "fallbacks": "default"}
+
         try:
             resposta = await self.cliente.beta.messages.create(
                 model=self.modelo,
@@ -105,8 +112,7 @@ class AgenteTriagem:
                     "format": {"type": "json_schema", "schema": SCHEMA},
                 },
                 cache_control={"type": "ephemeral"},
-                betas=BETAS,
-                fallbacks="default",
+                **extras,
             )
         except anthropic.RateLimitError:
             log.warning("Limite de uso da API atingido")

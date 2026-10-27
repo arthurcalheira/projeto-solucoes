@@ -84,9 +84,12 @@ n8n, do Make ou do Slack.
 
 ## Decisões técnicas
 
-- **Modelo:** `claude-opus-5-5`, com esforço `medium`. Os dois são
-  configuráveis no `.env` (`CLAUDE_MODELO`, `CLAUDE_ESFORCO`). Meça o custo
-  por conversa no piloto antes de mexer.
+- **Modelo:** `claude-haiku-5-5`, com esforço `high`. Ele custa cerca de 40
+  vezes menos que o Opus 5.5 (estimativa: ~US$ 0,01 por triagem, contra ~US$
+  0,25), e a triagem é uma tarefa relativamente simples. Os dois valores são
+  configuráveis no `.env` (`CLAUDE_MODELO`, `CLAUDE_ESFORCO`). Antes do
+  piloto, compare com o `claude-opus-5-5` num conjunto de conversas de teste,
+  principalmente na leitura de fotos ruins de documentos.
 - **Saída estruturada:** a API devolve sempre um JSON no formato de
   `app/ficha.py`, com as mensagens, a ação e a ficha completa. Se vier algo
   fora do formato, o caso vai para um humano.
@@ -98,9 +101,11 @@ n8n, do Make ou do Slack.
   isso invalidaria o cache e os blocos de raciocínio do modelo. Para
   conversas muito longas, o próximo passo é ativar a compactação de contexto
   da API.
-- **Recusas:** se o modelo recusar uma mensagem, o servidor da Anthropic
-  tenta outro modelo automaticamente (`fallbacks="default"`, um recurso em
-  beta). Se ainda assim falhar, o caso vai para um humano.
+- **Recusas:** se o modelo recusar uma mensagem, o caso vai para um humano.
+  Com Opus ou Sonnet, antes disso o servidor da Anthropic tenta outro modelo
+  automaticamente (`fallbacks="default"`, um recurso em beta). O Haiku 5.5
+  não tem esse recurso, então o código só envia o parâmetro para os modelos
+  que aceitam.
 - **Segurança:** o webhook confere a assinatura da Meta, as mensagens
   repetidas são ignoradas, os logs mostram o telefone mascarado e nunca o
   conteúdo das conversas, e o prompt instrui o agente a tratar o que o

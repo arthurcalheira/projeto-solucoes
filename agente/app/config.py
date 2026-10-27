@@ -80,8 +80,8 @@ def carregar_config() -> Config:
         banco = RAIZ / banco
 
     return Config(
-        modelo=env("CLAUDE_MODELO", "claude-opus-5-5"),
-        esforco=env("CLAUDE_ESFORCO", "medium"),
+        modelo=env("CLAUDE_MODELO", "claude-haiku-5-5"),
+        esforco=env("CLAUDE_ESFORCO", "high"),
         banco=banco,
         escritorio=carregar_escritorio(caminho_escritorio),
         whatsapp_token=env("WHATSAPP_TOKEN", ""),
