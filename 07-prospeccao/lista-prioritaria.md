@@ -79,8 +79,9 @@ casos de sucesso.
 
 ## Ordem de ataque sugerida
 
-1. **Semana 1:** os 12 da prioridade A. Uma mensagem por escritório,
-   personalizada com o gancho da tabela, mais o link da demo.
+1. **Semana 1:** os 12 da prioridade A, com as mensagens prontas em
+   [`mensagens-abordagem.md`](mensagens-abordagem.md). A demo vai só
+   depois que o escritório responder.
 2. **Semana 2:** os 22 da prioridade B. Faça follow-up de quem não
    respondeu na semana 1, uma vez só.
 3. **Semana 3:** o grupo U (upgrade), já com o que você aprendeu nas
@@ -90,9 +91,10 @@ casos de sucesso.
 
 ## Antes de mandar a primeira mensagem (2 minutos por escritório)
 
-1. Abra o site e clique no botão do WhatsApp. Veja se funciona e quanto
-   tempo demoram para responder. **Esse tempo de resposta é o seu melhor
-   argumento.**
+1. Abra o site e veja se o botão do WhatsApp funciona. Não mande
+   mensagem fingindo ser cliente. Depois de enviar a sua abordagem,
+   anote quanto tempo o escritório leva para responder **a você**.
+   **Esse tempo de resposta é o seu melhor argumento.**
 2. Procure o escritório na
    [Biblioteca de Anúncios da Meta](https://www.facebook.com/ads/library/).
    Se tem anúncio ativo, paga por cada contato e a dor é maior.
