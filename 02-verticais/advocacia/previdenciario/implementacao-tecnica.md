@@ -1,5 +1,9 @@
 # Implementação técnica
 
+> O código do agente está em [`agente/`](../../../agente/): servidor em
+> Python, ligado direto à API do WhatsApp e à API do Claude. O caminho com
+> n8n ou Make descrito abaixo continua valendo como alternativa sem código.
+
 Comece com ferramentas prontas e ligadas entre si. Só construa um sistema
 próprio quando tiver vários clientes pedindo a mesma coisa.
 

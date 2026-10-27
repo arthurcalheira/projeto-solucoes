@@ -1,0 +1,12 @@
+{
+  "nome": "Modelo Advocacia Previdenciária",
+  "prazo_retorno": "1 dia útil",
+  "politica_honorarios": "a primeira análise do caso é gratuita; valores são combinados diretamente com o advogado.",
+  "horario": {
+    "dias": [0, 1, 2, 3, 4],
+    "inicio": "08:00",
+    "fim": "18:00",
+    "fuso": "America/Sao_Paulo"
+  },
+  "guia_triagem": "../02-verticais/advocacia/previdenciario/triagem-por-beneficio.md"
+}
