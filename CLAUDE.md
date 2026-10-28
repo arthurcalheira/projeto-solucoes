@@ -4,6 +4,11 @@ Projeto de dois sócios que vendem soluções de IA para escritórios de
 advocacia previdenciária. Produto principal: agente de triagem no WhatsApp
 (pasta `agente/`).
 
+## Ao começar uma sessão
+
+Leia o [`STATUS.md`](STATUS.md): decisões tomadas, o que está pronto, o que
+falta e os próximos passos. Ao terminar uma sessão, atualize esse arquivo.
+
 ## Idioma e estilo
 
 - Escreva sempre em português do Brasil: documentos, comentários de código,

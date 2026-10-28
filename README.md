@@ -8,6 +8,8 @@ Cada solução vira um *pacote* com escopo, preço, processo de entrega e
 materiais de venda prontos — assim o segundo cliente custa muito menos
 esforço que o primeiro.
 
+> Situação atual, decisões e próximos passos: [`STATUS.md`](STATUS.md).
+
 ## Foco atual
 
 **Advocacia previdenciária**, entrando pela **PREV01: atendimento e
