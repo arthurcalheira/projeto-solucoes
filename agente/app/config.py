@@ -44,7 +44,15 @@ class Config:
     whatsapp_app_secret: str
     whatsapp_api_versao: str
     painel_token: str
+    painel_url: str
     aviso_webhook_url: str
+    smtp_host: str
+    smtp_porta: int
+    smtp_usuario: str
+    smtp_senha: str
+    aviso_email_de: str
+    aviso_email_para: tuple[str, ...]
+    pasta_documentos: Path
     agrupar_segundos: float
 
 
@@ -53,7 +61,9 @@ def carregar_escritorio(caminho: Path) -> Escritorio:
     h = dados["horario"]
     guia = Path(dados["guia_triagem"])
     if not guia.is_absolute():
-        guia = (caminho.parent / guia).resolve()
+        # Relativo ao arquivo do escritório; se não achar, relativo à pasta do agente.
+        perto = (caminho.parent / guia).resolve()
+        guia = perto if perto.exists() else (RAIZ / guia).resolve()
     return Escritorio(
         nome=dados["nome"],
         prazo_retorno=dados["prazo_retorno"],
@@ -75,14 +85,14 @@ def carregar_config() -> Config:
     if not caminho_escritorio.exists():
         caminho_escritorio = RAIZ / "escritorio.example.json"
 
-    banco = Path(env("BANCO", "dados/atendimento.db"))
-    if not banco.is_absolute():
-        banco = RAIZ / banco
+    def caminho(nome: str, padrao: str) -> Path:
+        c = Path(env(nome, padrao))
+        return c if c.is_absolute() else RAIZ / c
 
     return Config(
         modelo=env("CLAUDE_MODELO", "claude-haiku-5-5"),
         esforco=env("CLAUDE_ESFORCO", "high"),
-        banco=banco,
+        banco=caminho("BANCO", "dados/atendimento.db"),
         escritorio=carregar_escritorio(caminho_escritorio),
         whatsapp_token=env("WHATSAPP_TOKEN", ""),
         whatsapp_phone_number_id=env("WHATSAPP_PHONE_NUMBER_ID", ""),
@@ -90,6 +100,14 @@ def carregar_config() -> Config:
         whatsapp_app_secret=env("WHATSAPP_APP_SECRET", ""),
         whatsapp_api_versao=env("WHATSAPP_API_VERSAO", "v23.0"),
         painel_token=env("PAINEL_TOKEN", ""),
+        painel_url=env("PAINEL_URL", ""),
         aviso_webhook_url=env("AVISO_WEBHOOK_URL", ""),
+        smtp_host=env("SMTP_HOST", ""),
+        smtp_porta=int(env("SMTP_PORTA", "587")),
+        smtp_usuario=env("SMTP_USUARIO", ""),
+        smtp_senha=env("SMTP_SENHA", ""),
+        aviso_email_de=env("AVISO_EMAIL_DE", ""),
+        aviso_email_para=tuple(e.strip() for e in env("AVISO_EMAIL_PARA", "").split(",") if e.strip()),
+        pasta_documentos=caminho("PASTA_DOCUMENTOS", "dados/documentos"),
         agrupar_segundos=float(env("AGRUPAR_SEGUNDOS", "4")),
     )

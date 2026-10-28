@@ -1,4 +1,4 @@
-# Agente de triagem previdenciária (esqueleto)
+# Agente de triagem previdenciária
 
 Atende clientes de escritórios previdenciários pelo WhatsApp, faz a triagem
 por benefício, lê fotos e PDFs de documentos, monta a ficha do caso e passa
@@ -19,10 +19,14 @@ app/main.py ──► app/atendimento.py
                   │   prompt do escritório (em cache) + histórico + data/hora
                   │   resposta estruturada: mensagens + ação + ficha do caso
                   ▼
-                app/memoria.py (SQLite: histórico, ficha, status)
+                app/memoria.py (SQLite: histórico, conversa, ficha, status)
+                app/documentos.py (fotos e PDFs guardados no disco)
                   │
                   ├─► responde no WhatsApp
-                  └─► ação "humano" ou "concluido" → app/avisos.py (avisa a equipe)
+                  └─► ação "humano" ou "concluido" → app/avisos.py (e-mail e/ou webhook)
+
+Advogado ──► /painel (app/painel.py): casos, ficha, documentos, conversa,
+             resposta pelo WhatsApp do escritório e devolução ao agente
 ```
 
 | Arquivo | O que faz |
@@ -33,9 +37,14 @@ app/main.py ──► app/atendimento.py
 | `app/agente.py` | Chamada ao Claude, com cache, saída estruturada e tratamento de recusa e erro |
 | `app/atendimento.py` | Fluxo da conversa, agrupamento de mensagens, mídias e passagem para humano |
 | `app/whatsapp.py` | Webhook, envio de mensagens e download de mídias da Cloud API |
-| `app/memoria.py` | Banco SQLite |
-| `app/main.py` | Servidor HTTP: `/webhook` e a API do painel (`/casos`) |
+| `app/memoria.py` | Banco SQLite: histórico da API, conversa legível, documentos, ficha e status |
+| `app/documentos.py` | Guarda no disco as fotos e PDFs recebidos |
+| `app/avisos.py` | Avisa a equipe por e-mail (SMTP) e/ou webhook |
+| `app/painel.py` | Painel web do advogado |
+| `app/main.py` | Servidor HTTP: `/webhook`, `/painel` e a API `/casos` |
 | `simulador.py` | Conversa pelo terminal, sem WhatsApp |
+| `avaliacao/` | 20 conversas de teste e o script que confere as regras |
+| `Dockerfile`, `DEPLOY.md` | Como colocar no ar |
 
 ## Rodar no seu computador
 
@@ -62,12 +71,52 @@ uma chamada paga à API.**
 2. Preencha no `.env`: `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`,
    `WHATSAPP_APP_SECRET`, `WHATSAPP_VERIFY_TOKEN` (um texto que você inventa)
    e `PAINEL_TOKEN`.
-3. Suba o servidor num endereço com HTTPS:
-   `uvicorn app.main:app --host 0.0.0.0 --port 8000`.
+3. Suba o servidor num endereço com HTTPS (passo a passo em
+   [`DEPLOY.md`](DEPLOY.md)).
 4. No painel da Meta, cadastre o webhook `https://SEU-ENDERECO/webhook` com
    o mesmo `WHATSAPP_VERIFY_TOKEN` e assine o campo `messages`.
 
-## API do painel
+## Painel do advogado
+
+Abra `https://SEU-ENDERECO/painel` e entre com a senha `PAINEL_TOKEN`. O
+painel mostra:
+- a **lista de casos**, primeiro os que estão com a equipe, depois os prontos
+  para análise;
+- em cada caso: ficha, resumo, sinais, respostas, **arquivos recebidos**
+  (abrem no navegador), documentos pendentes e a **conversa completa**;
+- uma caixa para **responder pelo WhatsApp do escritório**. Ao responder, o
+  agente para de atender aquele contato. O botão **Devolver ao agente** faz
+  ele voltar, já sabendo o que a equipe conversou.
+
+O WhatsApp só permite mensagens livres até 24 h depois da última mensagem do
+cliente. Depois disso, é preciso uma mensagem de modelo aprovada pela Meta
+(o painel avisa).
+
+## Avisos para a equipe
+
+- **E-mail:** preencha `SMTP_*`, `AVISO_EMAIL_DE` e `AVISO_EMAIL_PARA`. O
+  e-mail chega quando um caso fica pronto ou precisa de humano, com o nome, o
+  assunto, a prioridade e o link do caso. Por segurança, não leva o resumo
+  nem dados de saúde.
+- **Webhook:** preencha `AVISO_WEBHOOK_URL` para receber a ficha completa
+  (n8n, Make, Slack).
+
+## Conversas de teste
+
+```bash
+python -m avaliacao.rodar                       # usa o modelo do .env
+python -m avaliacao.rodar --modelo claude-opus-5-5 --esforco medium
+```
+
+São 20 cenários: os 5 assuntos, óbito recente, pedido de humano, cliente
+irritado, cliente que já tem processo, assunto trabalhista, "eu tenho
+direito?", "quanto vou receber?", oferta de senha, tentativa de mudar as
+regras, honorários e áudio. O script confere se alguma resposta quebra as
+regras e se a ação, o assunto e a prioridade batem. **Faz chamadas pagas**
+(com o Haiku, menos de US$ 1 por rodada) e pede confirmação antes. Leia
+algumas conversas salvas em `dados/` para julgar o tom, que o script não mede.
+
+## API para integrações
 
 Todas as chamadas exigem o cabeçalho `X-Painel-Token`.
 
@@ -75,12 +124,8 @@ Todas as chamadas exigem o cabeçalho `X-Painel-Token`.
   `concluido`) e motivo.
 - `POST /casos/{telefone}/devolver-ao-agente`: o agente volta a responder o
   contato.
-- `DELETE /casos/{telefone}`: apaga tudo do contato (pedido de exclusão pela
-  LGPD).
-
-Para receber avisos (caso pronto, precisa de humano, nova mensagem durante o
-atendimento humano), preencha `AVISO_WEBHOOK_URL`. Pode ser um webhook do
-n8n, do Make ou do Slack.
+- `DELETE /casos/{telefone}`: apaga tudo do contato, inclusive os arquivos
+  (pedido de exclusão pela LGPD).
 
 ## Decisões técnicas
 
@@ -113,20 +158,22 @@ n8n, do Make ou do Slack.
 
 ## O que falta para produção
 
+Pronto no código: painel, documentos, resposta da equipe pelo mesmo número,
+avisos por e-mail, Docker e conversas de teste. Falta:
+
+- [ ] **Rodar as conversas de teste com a chave da API** e ajustar o prompt
+      (depende da chave).
+- [ ] **Colocar no ar** seguindo o [`DEPLOY.md`](DEPLOY.md) (depende de
+      escolher o provedor). O build do Docker ainda não foi testado.
+- [ ] **WhatsApp do escritório** na API oficial e verificação da empresa na
+      Meta (depende do escritório).
 - [ ] **Transcrição de áudio:** ligar um serviço de fala para texto em
-      `transcrever_audio()` (`app/atendimento.py`). Hoje o agente pede que a
-      pessoa escreva.
-- [ ] **Atendimento humano no mesmo número:** integrar com uma plataforma de
-      atendimento multiusuário compatível com a API oficial, para a equipe
-      responder pelo mesmo WhatsApp.
-- [ ] **Documentos no Drive do escritório:** copiar fotos e PDFs para a pasta
-      do cliente.
-- [ ] **Banco:** trocar o SQLite por Postgres quando houver mais de um
-      escritório ou servidor. Em qualquer caso, use disco criptografado,
-      backup e uma política de retenção (há dados de saúde).
-- [ ] **Painel visual** para o advogado, em cima de `GET /casos`.
-- [ ] **Lembrete de documentos pendentes** depois de 48 h, fora da janela de
-      24 h só com mensagem de modelo (template) aprovada pela Meta.
-- [ ] **Avaliação:** um conjunto de conversas de teste (os 5 assuntos,
-      áudio, foto ruim, pedido de humano, tentativa de mudar as regras) para
-      medir a qualidade antes de cada mudança no prompt.
+      `transcrever_audio()` (`app/atendimento.py`). Depende de escolher o
+      serviço. Hoje o agente pede que a pessoa escreva.
+- [ ] **Lembrete de documentos pendentes** depois de 48 h. Exige uma
+      mensagem de modelo aprovada pela Meta.
+- [ ] **Cópia dos documentos para o Drive do escritório** (opcional; hoje
+      ficam no servidor e abrem pelo painel).
+- [ ] **Banco:** trocar o SQLite por Postgres quando houver vários
+      escritórios. Em qualquer caso, disco criptografado, backup e política
+      de retenção (há dados de saúde).

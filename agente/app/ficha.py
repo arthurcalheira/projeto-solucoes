@@ -12,6 +12,13 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict
 
 Nivel = Literal["alta", "media", "baixa"]
+
+# Nomes legíveis para o painel e os avisos.
+ASSUNTOS = {
+    "aposentadoria": "Aposentadoria", "incapacidade": "Doença ou acidente", "bpc": "BPC/LOAS",
+    "pensao": "Pensão por morte", "negativa": "Negativa do INSS", "outro": "Outro assunto", "": "",
+}
+CASO_DE = {"proprio": "Próprio", "familiar": "Familiar", "": ""}
 Acao = Literal["continuar", "humano", "concluido"]
 
 

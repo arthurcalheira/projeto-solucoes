@@ -15,9 +15,11 @@ from fastapi import BackgroundTasks, FastAPI, Header, HTTPException, Query, Requ
 
 from .agente import AgenteTriagem
 from .atendimento import Atendimento
-from .avisos import Avisos
+from .avisos import Avisos, ConfigEmail
 from .config import carregar_config
+from .documentos import Arquivo
 from .memoria import Memoria
+from .painel import router as painel_router
 from .prompt import montar_prompt_sistema
 from .whatsapp import CanalWhatsApp, assinatura_valida, extrair_mensagens
 
@@ -36,17 +38,25 @@ async def lifespan(app: FastAPI):
         prompt_sistema=montar_prompt_sistema(cfg.escritorio),
     )
     memoria = Memoria(cfg.banco)
+    email = ConfigEmail(
+        cfg.smtp_host, cfg.smtp_porta, cfg.smtp_usuario, cfg.smtp_senha, cfg.aviso_email_de, cfg.aviso_email_para
+    )
+    avisos = Avisos(cfg.aviso_webhook_url, email, cfg.painel_url)
     app.state.cfg = cfg
     app.state.memoria = memoria
+    app.state.arquivo = Arquivo(cfg.pasta_documentos, memoria)
     app.state.atendimento = Atendimento(
-        agente, memoria, canal, Avisos(cfg.aviso_webhook_url), cfg.escritorio.horario, cfg.agrupar_segundos
+        agente, memoria, canal, avisos, cfg.escritorio.horario, app.state.arquivo, cfg.agrupar_segundos
     )
+    if not cfg.painel_token:
+        log.warning("PAINEL_TOKEN vazio: o painel e a API de casos ficam bloqueados")
     log.info("Agente pronto: escritório=%s modelo=%s", cfg.escritorio.nome, cfg.modelo)
     yield
     await canal.fechar()
 
 
 app = FastAPI(title="Agente de triagem previdenciária", lifespan=lifespan)
+app.include_router(painel_router)
 
 
 @app.get("/saude")
@@ -99,7 +109,7 @@ async def listar_casos(request: Request, x_painel_token: str | None = Header(def
 async def devolver_ao_agente(telefone: str, request: Request, x_painel_token: str | None = Header(default=None)) -> dict:
     """Depois que a equipe resolveu, o agente volta a responder este contato."""
     _checar_painel(request, x_painel_token)
-    request.app.state.memoria.definir_status(telefone, "bot")
+    request.app.state.atendimento.devolver_ao_agente(telefone)
     return {"ok": True}
 
 
@@ -107,5 +117,6 @@ async def devolver_ao_agente(telefone: str, request: Request, x_painel_token: st
 async def apagar_caso(telefone: str, request: Request, x_painel_token: str | None = Header(default=None)) -> dict:
     """Apaga todos os dados guardados do contato (pedido de exclusão pela LGPD)."""
     _checar_painel(request, x_painel_token)
-    request.app.state.memoria.apagar_conversa(telefone)
+    caminhos = request.app.state.memoria.apagar_conversa(telefone)
+    Arquivo.apagar(caminhos)
     return {"ok": True}

@@ -18,7 +18,7 @@ advocacia previdenciária. Produto principal: agente de triagem no WhatsApp
 - `02-verticais/advocacia/previdenciario/`: o produto PREV01 e o guia de triagem
 - `03-comercial/` e `07-prospeccao/`: material de venda e lista de escritórios
 - `04-entrega/`, `05-compliance/`, `06-clientes/`: implantação, LGPD e clientes
-- `agente/`: código Python do agente (ver `agente/README.md`)
+- `agente/`: código Python do agente, painel e conversas de teste (ver `agente/README.md` e `agente/DEPLOY.md`)
 - `demo/`: demo clicável usada nas reuniões
 
 ## Código (`agente/`)

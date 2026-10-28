@@ -25,6 +25,7 @@ from app.agente import AgenteTriagem
 from app.atendimento import Atendimento
 from app.avisos import Avisos
 from app.config import carregar_config
+from app.documentos import Arquivo
 from app.memoria import Memoria
 from app.prompt import montar_prompt_sistema
 from app.whatsapp import MensagemRecebida
@@ -48,8 +49,9 @@ async def main() -> None:
     agente = AgenteTriagem(
         anthropic.AsyncAnthropic(), cfg.modelo, cfg.esforco, montar_prompt_sistema(cfg.escritorio)
     )
+    arquivo = Arquivo(cfg.pasta_documentos / "simulador", memoria)
     atendimento = Atendimento(
-        agente, memoria, CanalTerminal(), Avisos(), cfg.escritorio.horario, agrupar_segundos=0
+        agente, memoria, CanalTerminal(), Avisos(), cfg.escritorio.horario, arquivo, agrupar_segundos=0
     )
     print(f"Simulador: {cfg.escritorio.nome} · modelo {cfg.modelo}. Escreva como se fosse o cliente.")
 

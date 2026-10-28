@@ -6,6 +6,7 @@ import asyncio
 import base64
 import logging
 from collections import defaultdict
+from dataclasses import dataclass
 from datetime import datetime, time
 from typing import Any, Protocol
 from zoneinfo import ZoneInfo
@@ -13,6 +14,7 @@ from zoneinfo import ZoneInfo
 from .agente import AgenteTriagem
 from .avisos import Avisos
 from .config import Horario
+from .documentos import Arquivo
 from .memoria import Memoria
 from .whatsapp import MensagemRecebida, mascarar
 
@@ -45,12 +47,35 @@ def dentro_do_horario(agora: datetime, horario: Horario) -> bool:
     return agora.weekday() in horario.dias and inicio <= agora.time() < fim
 
 
-def mensagem_de_contexto(agora: datetime, horario: Horario) -> str:
+def mensagem_de_contexto(agora: datetime, horario: Horario, notas_da_equipe: str = "") -> str:
     situacao = "dentro" if dentro_do_horario(agora, horario) else "fora"
-    return (
+    texto = (
         f"Agora: {DIAS[agora.weekday()]}, {agora:%d/%m/%Y %H:%M}. "
         f"O escritório está {situacao} do horário de atendimento."
     )
+    if notas_da_equipe:
+        texto += (
+            "\n\nEnquanto uma pessoa da equipe atendia este contato, a conversa foi esta:\n"
+            f"{notas_da_equipe}\n"
+            "Continue a partir daqui, sem repetir o que a equipe já resolveu."
+        )
+    return texto
+
+
+@dataclass
+class Recebido:
+    """Uma mensagem do cliente já com a mídia baixada e guardada."""
+    msg: MensagemRecebida
+    conteudo: bytes | None = None
+    mime: str = ""
+    documento_id: str | None = None
+
+    def descricao(self) -> str:
+        if self.msg.tipo == "text":
+            return self.msg.texto
+        nome = self.msg.nome_arquivo or {"image": "foto", "document": "documento", "audio": "áudio"}.get(self.msg.tipo, self.msg.tipo)
+        legenda = f" ({self.msg.texto})" if self.msg.texto else ""
+        return f"[{nome}]{legenda}"
 
 
 class Atendimento:
@@ -61,6 +86,7 @@ class Atendimento:
         canal: Canal,
         avisos: Avisos,
         horario: Horario,
+        arquivo: Arquivo,
         agrupar_segundos: float = 4.0,
     ) -> None:
         self.agente = agente
@@ -68,12 +94,15 @@ class Atendimento:
         self.canal = canal
         self.avisos = avisos
         self.horario = horario
+        self.arquivo = arquivo
         self.agrupar_segundos = agrupar_segundos
         self._travas: dict[str, asyncio.Lock] = defaultdict(asyncio.Lock)
         self._pendentes: dict[str, list[MensagemRecebida]] = defaultdict(list)
         # Espera em andamento por contato (só enquanto ainda está "dormindo").
         self._esperas: dict[str, asyncio.Task] = {}
         self._tarefas: set[asyncio.Task] = set()
+
+    # ---------- Entrada pelo webhook ----------
 
     async def receber(self, msg: MensagemRecebida) -> None:
         """Recebe uma mensagem do webhook. Mensagens seguidas do mesmo contato são
@@ -110,19 +139,25 @@ class Atendimento:
                     log.exception("Erro ao processar mensagens de %s", mascarar(telefone))
 
     async def _processar(self, telefone: str, lote: list[MensagemRecebida]) -> None:
+        recebidos = [await self._baixar_e_guardar(m) for m in lote]
+        for r in recebidos:
+            self.memoria.registrar(telefone, "cliente", r.descricao(), r.documento_id, nome_perfil=r.msg.nome_perfil)
+
         if self.memoria.status(telefone) == "humano":
-            # Uma pessoa da equipe está atendendo: o agente não responde.
+            # Uma pessoa da equipe está atendendo: o agente não responde, só toma nota.
+            for r in recebidos:
+                self.memoria.anotar_para_agente(telefone, f"Cliente: {r.descricao()}")
             await self.avisos.notificar(telefone, "nova_mensagem", self.memoria.ficha(telefone))
             return
 
-        entrada = await self._montar_entrada(lote)
+        entrada = await self._montar_entrada(recebidos)
         agora = datetime.now(ZoneInfo(self.horario.fuso))
-        ficha_atual = self.memoria.ficha(telefone)
+        notas = self.memoria.retirar_notas_para_agente(telefone)
         resultado = await self.agente.responder(
             historico=self.memoria.historico(telefone),
             entrada=entrada,
-            contexto=mensagem_de_contexto(agora, self.horario),
-            ficha_atual=ficha_atual,
+            contexto=mensagem_de_contexto(agora, self.horario, notas),
+            ficha_atual=self.memoria.ficha(telefone),
         )
         turno = resultado.turno
         self.memoria.acrescentar(telefone, resultado.novas_mensagens, nome_perfil=lote[0].nome_perfil)
@@ -132,6 +167,7 @@ class Atendimento:
         for texto in turno.mensagens:
             if texto.strip():
                 await self.canal.enviar_texto(telefone, texto)
+                self.memoria.registrar(telefone, "agente", texto)
 
         status_anterior = self.memoria.status(telefone)
         if turno.acao == "humano":
@@ -141,29 +177,54 @@ class Atendimento:
             self.memoria.definir_status(telefone, "concluido")
             await self.avisos.notificar(telefone, "concluido", turno.ficha)
 
-    async def _montar_entrada(self, lote: list[MensagemRecebida]) -> list[dict[str, Any]]:
+    # ---------- Ações da equipe (pelo painel) ----------
+
+    async def responder_como_equipe(self, telefone: str, texto: str) -> None:
+        """Uma pessoa da equipe responde ao cliente pelo mesmo número do WhatsApp."""
+        async with self._travas[telefone]:
+            await self.canal.enviar_texto(telefone, texto)
+            self.memoria.registrar(telefone, "equipe", texto)
+            self.memoria.anotar_para_agente(telefone, f"Equipe: {texto}")
+            if self.memoria.status(telefone) != "humano":
+                self.memoria.definir_status(telefone, "humano", "Assumido pela equipe")
+
+    def assumir(self, telefone: str) -> None:
+        self.memoria.definir_status(telefone, "humano", "Assumido pela equipe")
+
+    def devolver_ao_agente(self, telefone: str) -> None:
+        self.memoria.definir_status(telefone, "bot")
+
+    # ---------- Mídias ----------
+
+    async def _baixar_e_guardar(self, msg: MensagemRecebida) -> Recebido:
+        if msg.tipo == "text" or not msg.midia_id:
+            return Recebido(msg)
+        try:
+            conteudo, mime = await self.canal.baixar_midia(msg.midia_id)
+        except Exception:
+            log.exception("Falha ao baixar mídia")
+            return Recebido(msg)
+        mime = mime or msg.mime
+        documento_id = self.arquivo.salvar(msg.telefone, conteudo, mime, msg.nome_arquivo)
+        return Recebido(msg, conteudo, mime, documento_id)
+
+    async def _montar_entrada(self, recebidos: list[Recebido]) -> list[dict[str, Any]]:
         """Transforma as mensagens do WhatsApp em blocos de conteúdo para o Claude."""
         blocos: list[dict[str, Any]] = []
-        for msg in lote:
+        for r in recebidos:
+            msg = r.msg
             if msg.tipo == "text":
                 blocos.append({"type": "text", "text": msg.texto})
                 continue
-
-            if msg.tipo in ("image", "document", "audio") and msg.midia_id:
-                try:
-                    conteudo, mime = await self.canal.baixar_midia(msg.midia_id)
-                except Exception:
-                    log.exception("Falha ao baixar mídia")
+            if r.conteudo is None:
+                if msg.tipo in ("image", "document", "audio"):
                     blocos.append({"type": "text", "text": "[A pessoa enviou um arquivo que não pôde ser baixado. Peça que envie de novo.]"})
-                    continue
-                mime = mime or msg.mime
-                blocos.extend(await self._bloco_de_midia(msg, conteudo, mime))
+                else:
+                    blocos.append({"type": "text", "text": f"[A pessoa enviou uma mensagem do tipo '{msg.tipo}', que não é lida por aqui.]"})
             else:
-                blocos.append({"type": "text", "text": f"[A pessoa enviou uma mensagem do tipo '{msg.tipo}', que não é lida por aqui.]"})
-
+                blocos.extend(await self._bloco_de_midia(msg, r.conteudo, r.mime))
             if msg.texto:
                 blocos.append({"type": "text", "text": f"Legenda: {msg.texto}"})
-
         return blocos or [{"type": "text", "text": "[Mensagem vazia]"}]
 
     async def _bloco_de_midia(self, msg: MensagemRecebida, conteudo: bytes, mime: str) -> list[dict[str, Any]]:
@@ -181,4 +242,4 @@ class Atendimento:
             if texto:
                 return [{"type": "text", "text": f"[Áudio transcrito] {texto}"}]
             return [{"type": "text", "text": "[A pessoa enviou um áudio, mas a transcrição ainda não está ligada. Peça com gentileza que escreva a mensagem.]"}]
-        return [{"type": "text", "text": f"[A pessoa enviou um arquivo ({mime or 'tipo desconhecido'}) que não dá para ler. Peça uma foto ou um PDF.]"}]
+        return [{"type": "text", "text": f"[A pessoa enviou um arquivo ({mime or 'tipo desconhecido'}) que não dá para ler. O arquivo foi guardado para a equipe. Peça uma foto ou um PDF.]"}]
