@@ -64,6 +64,9 @@ button, input { font: inherit; color: inherit; }
 .top h1 { font-size: 1.5rem; line-height: 1.2; margin: 0; font-weight: 700; letter-spacing: -0.01em; text-wrap: balance; }
 .top p { margin: 4px 0 0; color: var(--muted); max-width: 62ch; }
 .eyebrow { font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--brand); }
+.modos { display: inline-flex; flex-wrap: wrap; gap: 4px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 4px; margin-top: 12px; }
+.modos button { border: 0; background: transparent; padding: 6px 12px; border-radius: 7px; font-weight: 600; font-size: 0.85rem; cursor: pointer; color: var(--muted); }
+.modos button[aria-pressed="true"] { background: var(--brand-soft); color: var(--ink); }
 .actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .btn { border: 1px solid var(--line); background: var(--surface); padding: 8px 14px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.9rem; }
 .btn:hover { border-color: var(--brand); }
@@ -181,8 +184,12 @@ tr.live td { background: var(--brand-soft); }
   <header class="top">
     <div>
       <div class="eyebrow">Demonstração · dados fictícios</div>
-      <h1>Triagem previdenciária no WhatsApp</h1>
+      <h1 id="titulo">Triagem previdenciária no WhatsApp</h1>
       <p>Responda como se fosse o cliente. O painel do advogado ao lado se preenche sozinho enquanto a conversa acontece.</p>
+      <div class="modos" role="group" aria-label="Tipo de escritório">
+        <button type="button" id="modo-prev" aria-pressed="true">Escritório previdenciário</button>
+        <button type="button" id="modo-geral" aria-pressed="false">Escritório com várias áreas</button>
+      </div>
     </div>
     <div class="actions">
       <button class="btn primary" id="btn-auto" type="button">Simular conversa completa</button>
@@ -199,7 +206,7 @@ tr.live td { background: var(--brand-soft); }
     <section class="phone" aria-label="Conversa do cliente">
       <div class="phone-head">
         <div class="avatar" aria-hidden="true">MA</div>
-        <div><b>Modelo Advocacia Previdenciária</b><small>assistente virtual · online</small></div>
+        <div><b id="nome-escritorio">Modelo Advocacia Previdenciária</b><small>assistente virtual · online</small></div>
       </div>
       <div class="msgs" id="msgs" aria-live="polite"></div>
       <div class="composer">
@@ -294,6 +301,16 @@ tr.live td { background: var(--brand-soft); }
     "Auxílio por doença", "Menos de 30 dias", "Sim", "Mais de 6 meses",
     "Carteira assinada", "Sim", "Não", "Campinas/SP", "Enviar fotos agora"
   ];
+  const ROTEIRO_GERAL = [
+    "Pode continuar", "Carlos Eduardo", "O meu caso", "Trabalho e emprego",
+    "Fui demitido(a)", "6 meses a 2 anos", "Sim", "Verbas da rescisão não pagas",
+    "Salvador/BA", "Enviar fotos agora"
+  ];
+  const FILA_GERAL = [
+    ["2026-0147", "Rosana L.", "Consumidor", "media", "Pronto para análise"],
+    ["2026-0146", "Sebastiana R.", "Previdenciário", "media", "Faltam documentos"],
+    ["2026-0145", "Marcos T.", "Trabalhista", "alta", "Pronto para análise"]
+  ];
   const FILA_EXEMPLOS = [
     ["2026-0147", "Carlos M.", "Outro assunto", null, "Aguardando atendimento humano"],
     ["2026-0146", "Sebastiana R.", "Aposentadoria", "media", "Faltam documentos"],
@@ -314,7 +331,7 @@ tr.live td { background: var(--brand-soft); }
   let relogio = null;
 
   function novoCaso() {
-    return { nome: "", casoDe: "", assunto: "", cidade: "", respostas: [], sinais: [], docs: [],
+    return { nome: "", casoDe: "", assunto: "", area: "", responsavel: "", cidade: "", respostas: [], sinais: [], docs: [],
       status: "andamento", inicio: Date.now(), fim: null, negativa: null };
   }
 
@@ -530,7 +547,7 @@ tr.live td { background: var(--brand-soft); }
 
   // ---------- Fluxo principal ----------
   async function fluxo(id) {
-    await bot(id, "Olá! Aqui é a assistente virtual do escritório <b>Modelo Advocacia Previdenciária</b>.");
+    await bot(id, `Olá! Aqui é a assistente virtual do escritório <b>${MODOS[modo].escritorio}</b>.`);
     const ok = await pergunta(id, "Vou fazer algumas perguntas rápidas para o advogado analisar o seu caso. Suas informações ficam em sigilo e só a equipe do escritório tem acesso. Posso continuar?",
       ["Pode continuar", "Prefiro falar com uma pessoa"]);
     if (ok !== "Pode continuar") return passaHumano(id, "Cliente pediu atendimento humano logo no início.");
@@ -541,15 +558,28 @@ tr.live td { background: var(--brand-soft); }
     caso.casoDe = await pergunta(id, `Prazer, ${primeiro}! O caso é seu ou de um familiar?`, ["O meu caso", "De um familiar"]);
     render();
 
-    const ASSUNTOS = { "Aposentadoria": aposentadoria, "Doença ou acidente": incapacidade, "BPC/LOAS": bpc, "Pensão por morte": pensao, "O INSS negou ou cortou": negativa };
-    const assunto = await pergunta(id, "Sobre qual assunto você quer falar?", [...Object.keys(ASSUNTOS), "Outro assunto"]);
-    caso.assunto = assunto; render();
-    if (assunto === "Outro assunto") {
-      const desc = await perguntaTexto(id, "Me conta em poucas palavras o que aconteceu.", "Descreva o caso", "Relato");
-      return passaHumano(id, "Assunto fora dos roteiros de triagem.", desc);
+    let seguir;
+    if (modo === "geral") {
+      const escolha = await pergunta(id, `Sobre o que você precisa de ajuda, ${primeiro}?`, Object.keys(AREAS));
+      const area = AREAS[escolha];
+      caso.area = area.nome; caso.responsavel = area.equipe; render();
+      if (area.fn === "prev") {
+        seguir = await assuntoPrev(id);
+      } else if (area.fn) {
+        caso.assunto = area.nome; render();
+        pedeDocs(DOCS_BASE);
+        await area.fn(id);
+        seguir = true;
+      } else {
+        caso.assunto = "Outro assunto"; render();
+        const desc = await perguntaTexto(id, "Me conta em poucas palavras o que aconteceu.", "Descreva o caso", "Relato");
+        return passaHumano(id, "Assunto sem roteiro de triagem: a recepção direciona para a área certa.", desc);
+      }
+    } else {
+      caso.area = "Previdenciário"; caso.responsavel = "Equipe previdenciária";
+      seguir = await assuntoPrev(id);
     }
-    pedeDocs(DOCS_BASE);
-    await ASSUNTOS[assunto](id);
+    if (!seguir) return;
 
     caso.cidade = await perguntaTexto(id, "Em qual cidade você mora?", "Cidade/UF");
     render();
@@ -571,6 +601,62 @@ tr.live td { background: var(--brand-soft); }
     await bot(id, `Pronto, ${primeiro}! O seu caso foi encaminhado ao advogado, que vai analisar e te responder em até 1 dia útil. Lembrando que só o advogado pode dizer se você tem direito. Eu só organizo as informações.`);
     caso.status = "pronto"; caso.fim = Date.now(); render();
   }
+
+  async function assuntoPrev(id) {
+    const ASSUNTOS = { "Aposentadoria": aposentadoria, "Doença ou acidente": incapacidade, "BPC/LOAS": bpc, "Pensão por morte": pensao, "O INSS negou ou cortou": negativa };
+    const assunto = await pergunta(id, modo === "geral" ? "Certo! E qual é o assunto com o INSS?" : "Sobre qual assunto você quer falar?", [...Object.keys(ASSUNTOS), "Outro assunto"]);
+    caso.assunto = assunto; render();
+    if (assunto === "Outro assunto") {
+      const desc = await perguntaTexto(id, "Me conta em poucas palavras o que aconteceu.", "Descreva o caso", "Relato");
+      await passaHumano(id, "Assunto fora dos roteiros de triagem.", desc);
+      return false;
+    }
+    pedeDocs(DOCS_BASE);
+    await ASSUNTOS[assunto](id);
+    return true;
+  }
+
+  async function trabalhista(id) {
+    const vinculo = await pergunta(id, "Você ainda trabalha na empresa?", ["Ainda trabalho", "Fui demitido(a)", "Pedi demissão"], "Situação");
+    let saida = null;
+    if (vinculo !== "Ainda trabalho") saida = await pergunta(id, "Faz quanto tempo que você saiu?", ["Menos de 6 meses", "6 meses a 2 anos", "Mais de 2 anos"], "Saída da empresa");
+    const carteira = await pergunta(id, "Você tinha carteira assinada?", ["Sim", "Não", "Só parte do tempo"], "Carteira assinada");
+    const motivo = await pergunta(id, "O que você quer resolver?", ["Verbas da rescisão não pagas", "Horas extras", "Trabalho sem carteira", "Acidente ou doença do trabalho", "Outro problema"], "Problema");
+    caso.assunto = motivo; render();
+    if (saida === "Mais de 2 anos") sinal("Saída há mais de 2 anos: verificar prescrição (prazo de 2 anos após o fim do contrato).", "media");
+    else if (saida === "6 meses a 2 anos") sinal("Saída entre 6 meses e 2 anos: prazo de 2 anos para a ação está correndo. Conferir a data exata.", "alta");
+    else if (saida) sinal("Saída recente: dentro do prazo para a ação. Conferir a data exata.", "media");
+    if (carteira !== "Sim" || motivo === "Trabalho sem carteira") sinal("Período sem carteira assinada: reunir provas (mensagens, testemunhas, comprovantes de pagamento).", "media");
+    if (motivo === "Acidente ou doença do trabalho") sinal("Acidente ou doença do trabalho: avaliar estabilidade, indenização e também o lado previdenciário.", "alta");
+    if (motivo === "Verbas da rescisão não pagas") sinal("Verbas da rescisão não pagas: conferir termo de rescisão e extrato do FGTS.", "media");
+    if (!caso.sinais.length) sinal("Poucas informações para sinalizar: advogado avalia.", "baixa");
+    pedeDocs(["Carteira de trabalho", "Contracheques", "Termo de rescisão (TRCT)", "Extrato do FGTS"]);
+    if (motivo === "Acidente ou doença do trabalho") pedeDocs(["CAT e laudos médicos"]);
+  }
+
+  async function consumidor(id) {
+    const empresa = await pergunta(id, "Com que tipo de empresa é o problema?", ["Banco ou financeira", "Telefone ou internet", "Loja ou compra online", "Plano de saúde", "Outra empresa"], "Empresa");
+    const problema = await pergunta(id, "O que aconteceu?", ["Cobrança indevida", "Nome negativado", "Produto ou serviço com defeito", "Plano negou cobertura", "Outro problema"], "Problema");
+    caso.assunto = problema; render();
+    const tentou = await pergunta(id, "Você já tentou resolver direto com a empresa?", ["Sim, sem solução", "Ainda não"], "Tentativa com a empresa");
+    const provas = await pergunta(id, "Você tem contrato, faturas, protocolos ou prints da conversa?", ["Sim", "Alguns", "Não"], "Comprovantes");
+    if (problema === "Plano negou cobertura") sinal("Negativa de cobertura do plano de saúde: avaliar urgência e pedido de liminar.", "alta");
+    if (problema === "Nome negativado") sinal("Negativação: conferir se a dívida existe e se houve aviso antes da inclusão.", "media");
+    if (problema === "Cobrança indevida") sinal("Cobrança indevida: levantar valores pagos e avaliar devolução.", "media");
+    if (tentou === "Ainda não") sinal("Ainda não reclamou com a empresa: advogado orienta se vale tentar antes (SAC ou consumidor.gov.br).", "baixa");
+    if (provas === "Não") sinal("Poucos comprovantes: orientar a reunir faturas, protocolos e prints.", "media");
+    if (!caso.sinais.length) sinal("Poucas informações para sinalizar: advogado avalia.", "baixa");
+    pedeDocs(["Contrato ou faturas", "Protocolos de atendimento", "Prints e comprovantes"]);
+    if (problema === "Nome negativado") pedeDocs(["Comprovante da negativação (Serasa/SPC)"]);
+    if (empresa === "Plano de saúde") pedeDocs(["Carteirinha do plano e relatório médico"]);
+  }
+
+  const AREAS = {
+    "Trabalho e emprego": { nome: "Trabalhista", equipe: "Equipe trabalhista", fn: trabalhista },
+    "Compras, bancos e serviços": { nome: "Consumidor", equipe: "Equipe cível e consumidor", fn: consumidor },
+    "INSS e aposentadoria": { nome: "Previdenciário", equipe: "Equipe previdenciária", fn: "prev" },
+    "Outro assunto": { nome: "A definir", equipe: "Recepção", fn: null }
+  };
 
   async function passaHumano(id, motivo, relato) {
     await bot(id, "Tudo bem! Já avisei a equipe, e uma pessoa do escritório vai te responder por aqui em breve.");
@@ -612,7 +698,8 @@ tr.live td { background: var(--brand-soft); }
 
     $("#p-dados").innerHTML = kv([
       ["Nome", caso.nome || "—"], ["Caso de", caso.casoDe || "—"],
-      ["Assunto", caso.assunto || "—"], ["Cidade", caso.cidade || "—"],
+      ["Área", caso.area || "—"], ["Assunto", caso.assunto || "—"],
+      ["Encaminhar para", caso.responsavel || "—"], ["Cidade", caso.cidade || "—"],
       ["Canal", "WhatsApp · (19) 9xxxx-0148"]
     ]);
     $("#p-resp").innerHTML = kv(caso.respostas.map(([k, v]) => [k, v]));
@@ -643,7 +730,7 @@ tr.live td { background: var(--brand-soft); }
     }
     $("#btn-copy").disabled = !terminou;
 
-    const linhas = [["2026-0148", caso.nome || "Novo contato", caso.assunto || "Identificando", p, STATUS[caso.status][0], true], ...FILA_EXEMPLOS];
+    const linhas = [["2026-0148", caso.nome || "Novo contato", caso.assunto || "Identificando", p, STATUS[caso.status][0], true], ...(modo === "geral" ? FILA_GERAL : FILA_EXEMPLOS)];
     $("#fila").innerHTML = linhas.map(([n, c, a, pr, s, live]) =>
       `<tr class="${live ? "live" : ""}"><td class="mono">${n}</td><td>${esc(c)}${live ? "" : '<span class="tag">exemplo</span>'}</td><td>${esc(a)}</td><td><span class="pill ${pr || "none"}">${pr ? NOME_NIVEL[pr] : "—"}</span></td><td>${esc(s)}</td></tr>`).join("");
 
@@ -657,10 +744,24 @@ tr.live td { background: var(--brand-soft); }
   }
 
   // ---------- Controles ----------
+  const MODOS = {
+    prev: { escritorio: "Modelo Advocacia Previdenciária", titulo: "Triagem previdenciária no WhatsApp", roteiro: ROTEIRO_DEMO },
+    geral: { escritorio: "Modelo Advocacia", titulo: "Primeiro atendimento no WhatsApp", roteiro: ROTEIRO_GERAL }
+  };
+  let modo = location.hash === "#varias-areas" ? "geral" : "prev";
+
+  function aplicarModo() {
+    $("#titulo").textContent = MODOS[modo].titulo;
+    $("#nome-escritorio").textContent = MODOS[modo].escritorio;
+    $("#modo-prev").setAttribute("aria-pressed", String(modo === "prev"));
+    $("#modo-geral").setAttribute("aria-pressed", String(modo === "geral"));
+  }
+
   function iniciar(comRoteiro) {
     run += 1;
     const id = run;
-    roteiro = comRoteiro ? [...ROTEIRO_DEMO] : null;
+    aplicarModo();
+    roteiro = comRoteiro ? [...MODOS[modo].roteiro] : null;
     caso = novoCaso();
     $("#msgs").innerHTML = '<div class="day">Hoje</div>';
     desligaEntrada();
@@ -681,6 +782,12 @@ tr.live td { background: var(--brand-soft); }
 
   $("#btn-auto").onclick = () => { mostra("chat"); iniciar(true); };
   $("#btn-reset").onclick = () => { mostra("chat"); iniciar(false); };
+  $("#modo-prev").onclick = () => { location.hash = "previdenciario"; };
+  $("#modo-geral").onclick = () => { location.hash = "varias-areas"; };
+  addEventListener("hashchange", () => {
+    const novo = location.hash === "#varias-areas" ? "geral" : "prev";
+    if (novo !== modo) { modo = novo; mostra("chat"); iniciar(false); }
+  });
   $("#tab-chat").onclick = () => mostra("chat");
   $("#tab-panel").onclick = () => mostra("panel");
   $("#btn-copy").onclick = () => {

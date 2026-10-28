@@ -23,6 +23,8 @@
 6. **Faça um follow-up só, 3 ou 4 dias depois** (modelo no fim). Se não
    responderem, passe para o próximo.
 
+**Link da demo:** https://claude.ai/artifact/F6cMDPLxtpidu3ykCvDDLj. Para escritórios com várias áreas, use o mesmo link com `#varias-areas` no fim; ele abre direto no modo de várias áreas.
+
 ⚠️ **Antes de enviar o link da demo,** compartilhe a página pelo menu
 **Share** dela. Do jeito que está, só você consegue abrir. Se preferir,
 grave um vídeo de 2 minutos da tela rodando "Simular conversa completa"
