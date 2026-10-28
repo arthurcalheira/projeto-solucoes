@@ -59,6 +59,32 @@
 > Posso te mandar uma demonstração de 2 minutos? Se puder repassar a quem
 > cuida do previdenciário, agradeço muito.
 
+## 1b. WhatsApp: versão para todas as áreas do escritório
+
+> Olá, tudo bem? Sou {{SEU NOME}}, da {{SUA EMPRESA}}. Trabalho com
+> atendimento automatizado para escritórios de advocacia.
+>
+> Vi que a DFQS atua em trabalhista, consumidor, cível, direito público e
+> previdenciário. Num escritório com tantas frentes, o primeiro atendimento
+> no WhatsApp costuma virar um gargalo: entender o que a pessoa precisa,
+> descobrir a área, pedir documentos e só então chegar ao advogado certo.
+>
+> Faço um assistente que cuida dessa etapa no WhatsApp do próprio
+> escritório, a qualquer hora: identifica o assunto, faz as perguntas
+> iniciais de cada área, recebe e lê os documentos e entrega ao sócio
+> responsável um resumo do caso, com a prioridade marcada. Ele nunca dá
+> parecer nem promete resultado: quem analisa é sempre o advogado.
+>
+> Posso te mandar uma demonstração de 2 minutos? Se puder repassar a
+> quem cuida do atendimento do escritório, agradeço muito.
+
+**Antes de vender esta versão:** o agente hoje tem o roteiro de triagem
+detalhado só para o previdenciário. Para as outras áreas, ele identifica o
+assunto e passa para uma pessoa. Atender todas as áreas exige escrever um
+guia de perguntas e documentos para cada uma (trabalhista, consumidor,
+cível) com o escritório, durante a implantação. Isso é trabalho a mais e
+deve entrar no preço.
+
 ## 2. E-mail (para o endereço de contato do site)
 
 **Assunto:** Primeiro atendimento previdenciário pelo WhatsApp, para a DFQS
