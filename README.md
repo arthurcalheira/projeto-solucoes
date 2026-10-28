@@ -31,6 +31,7 @@ e a demo [`demo/triagem-previdenciaria.html`](demo/triagem-previdenciaria.html).
 
 ## Ordem sugerida de leitura
 
+0. [`00-estrategia/ferramentas-e-workflow.md`](00-estrategia/ferramentas-e-workflow.md): como os dois sócios trabalham juntos
 1. [`00-estrategia/posicionamento.md`](00-estrategia/posicionamento.md)
 2. [`01-catalogo/catalogo.md`](01-catalogo/catalogo.md)
 3. [`02-verticais/advocacia/README.md`](02-verticais/advocacia/README.md)
