@@ -1,8 +1,7 @@
 # Status do projeto
 
-> **Leia isto primeiro ao retomar o trabalho.** Atualizado em 28/10/2026, no
-> fim da primeira sessão de trabalho com o Claude. Atualize a cada sessão
-> (decisões novas, o que mudou, próximos passos).
+> **Leia isto primeiro ao retomar o trabalho.** Atualizado em 25/11/2026.
+> Atualize a cada sessão (decisões novas, o que mudou, próximos passos).
 
 ## Onde estamos, em uma frase
 
@@ -43,9 +42,11 @@ WhatsApp de verdade**, e **nenhum escritório foi contatado**.
 
 - **Demo:** https://claude.ai/artifact/F6cMDPLxtpidu3ykCvDDLj
   (com `#varias-areas` no fim, abre o modo para escritórios com várias áreas)
-- **Repositório:** https://github.com/arthurcalheira/projeto-solucoes, branch
-  `claude/intelligent-knuth-anwbj7`. **Ainda não foi feito o merge para o
-  `main`** (abrir um PR quando quiserem consolidar).
+- **Repositório:** https://github.com/arthurcalheira/projeto-solucoes. O
+  trabalho da primeira sessão está na branch `claude/intelligent-knuth-anwbj7`
+  e o `CLAUDE.md` revisado na `claude/upbeat-fermat-ushpn2` (que parte da
+  primeira). **O `main` ainda não existe no GitHub:** é preciso criá-lo para
+  poder abrir PRs e protegê-lo.
 
 ## Próximos passos
 
@@ -110,3 +111,4 @@ com a chave e, no terminal do VS Code:
 | Data | O que aconteceu |
 |---|---|
 | 27–28/10/2026 | Primeira sessão: estrutura do projeto, escolha do nicho e do produto, demo, pesquisa de mercado, prospecção de 68 escritórios, mensagens de abordagem, sugestão de nome, agente completo no código (painel, avisos, documentos, deploy, conversas de teste), checklist do piloto e rascunho de contrato |
+| 25/11/2026 | `CLAUDE.md` revisado: comandos (inclusive rodar um teste só), arquitetura do agente e cuidados ao mexer no código. Os 33 testes passaram numa instalação limpa (Python 3.13, `anthropic` 2.14.0). Nada mudou no código |
